@@ -10,6 +10,14 @@
     
     `pip show djangorestframework`
 
-
-1. 가상 환경 셋팅
-2. 마이그레이션 (초기 DB생성)
+[가상환경 셋팅]
+1. C드라이브 위치에서 venvs라는 가상 환경 관리용 폴더 생성
+2. venvs 폴더에 가상 환경  생성 
+    ```cd venvs```
+    ```python -m venv  {가상 환경 이름}```
+3. 가상환경 활성화
+   ``cd C:\venvs\{가상 환경 이름}\Scripts```
+   ```activate```
+4. 백엔드 프로젝트 폴더 위치로 이동 
+5. 마이그레이션 (초기 DB생성)
+   ```python manage.py migrate```
