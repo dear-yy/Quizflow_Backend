@@ -16,7 +16,7 @@
     ```cd venvs```
     ```python -m venv  {가상 환경 이름}```
 3. 가상환경 활성화
-   ``cd C:\venvs\{가상 환경 이름}\Scripts```
+   ```cd C:\venvs\{가상 환경 이름}\Scripts```
    ```activate```
 4. 백엔드 프로젝트 폴더 위치로 이동 
 5. 마이그레이션 (초기 DB생성)
