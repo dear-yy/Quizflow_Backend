@@ -9,3 +9,7 @@
 - DRF → 3.15.2
     
     `pip show djangorestframework`
+
+
+1. 가상 환경 셋팅
+2. 마이그레이션 (초기 DB생성)
