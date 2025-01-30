@@ -1,46 +1,33 @@
-from django.shortcuts import render
-
-# Create your views here. 회원가입
-from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserSerializer, ProfileSerializer
+from rest_framework import generics,status
+from .permissions import CustomReadOnly
+from .serializers import RegisterSerializer, LoginSerializer, ProfileSerializer
+from django.contrib.auth.models import User
 from .models import Profile
-from django.contrib.auth import authenticate
 
-class RegisterView(APIView):
-    def post(self, request):
-        user_serializer = UserSerializer(data=request.data)
-        
-        if user_serializer.is_valid():
-            user = user_serializer.save()
 
-            # 프로필 자동 생성
-            profile = Profile.objects.create(user=user, nickname=request.data.get("nickname", ""))
-            profile_serializer = ProfileSerializer(profile)
+# 회원가입(생성)
+class RegisterView(generics.CreateAPIView): # 생성 기능만 상속 
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer 
+    # 생성 완료 시, username과 email 반환 
 
-            return Response({
-                "user": user_serializer.data,
-                "profile": profile_serializer.data
-            }, status=status.HTTP_201_CREATED)
-        
-        return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
+# 로그인(인증)
+class LoginView(generics.GenericAPIView): # 모델에 (CRUD)영향을 주지 않으니, 기본 GenericAPIView 상속
+    # 존재하는 유저라면, 토큰 찾아서 반환함으로써, 유저 인증을 수행하는 기능 
+    serializer_class = LoginSerializer
 
-        user = authenticate(username=username, password=password)
-        if user is None:
-            return Response(
-                {"error": "아이디 또는 비밀번호가 올바르지 않습니다."},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+    def post(self, request): # 클라이언트가 로그인 정보를 담아 POST 요청을 보내면 호출됨
+        serializer = self.get_serializer(data=request.data) # 클라이언트의 요청 데이터를 역직렬화 # get_serializer()는 serializer_class에 지정된 LoginSerializer를 자동으로 불러옴
+        serializer.is_valid(raise_exception=True) # 시리얼라이저에 전달된 데이터를 검증 # 데이터가 유효하지 않을 경우 유효성 검증 오류가 발생하는 옵션을 True로 설정
+        token = serializer.validated_data # LoginSerializer의 validate 메소드의 리턴값인 token 받아옴
+        return Response({"token":token.key}, status=status.HTTP_200_OK) #토큰 객체에서 key를 추출하여 클라이언트에게 전달
+    
 
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {"access_token": str(refresh.access_token), "refresh_token": str(refresh)},
-            status=status.HTTP_200_OK
-        )
+# 프로필(조회,수정)
+class ProfileView(generics.RetrieveUpdateAPIView):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer 
+    permission_classes = [CustomReadOnly] # 조회&수정 권한
+    

@@ -34,3 +34,6 @@ djangorestframework-simplejwt
 
 # 이미지 필드 사용 
 Pillow
+
+# CORS(Cross-Origin Resource Sharing)를 처리하기 위한 패키지
+django-cors-headers

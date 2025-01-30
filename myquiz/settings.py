@@ -9,10 +9,8 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os
 from pathlib import Path
-
-from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# 토큰 암호화에 사용하는 키 # 이 키가 노출되지 않는다면, 암호화된 토큰으로 어떤 정보도 알아낼 수 없음
 SECRET_KEY = "django-insecure-egdvaa^e5^i^rozn=58*h&(-j&tio)v)_-kzj-n8$whey7ikm)"
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -30,21 +29,24 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
+    "django.contrib.admin", 
+    "django.contrib.auth", # 인증을 위한 앱 # 기본 User 모델을 여기서 가져옴
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    "rest_framework_simplejwt",  # JWT 인증 추가
-    "users",  # 사용자 앱 추가
+    "rest_framework",# DRF를 위한 앱
+    "rest_framework.authtoken", # 기본 토큰 인증 방식으로 사용할 앱
+    "users",  # 회원가입 & 로그인 기능을 수행하는 앱
+    "corsheaders", # 서버가 cors 정책 준수하도록 하는 앱
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware", # 순서 중요! # cors 관련 미들웨어 설정
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -71,6 +73,10 @@ TEMPLATES = [
         },
     },
 ]
+
+# 프론트엔드에서 리소스에 잘 접근할 수 있도록 처리 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 WSGI_APPLICATION = "myquiz.wsgi.application"
 
@@ -105,6 +111,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Rest framework
+REST_FRAMEWORK = { # 전역 적용
+    # 인증 방식으로 '토큰 방식'을 사용한다는 것을 정의하기 
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -122,20 +137,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+# 미디어 파일에 대한 경로 지정 
+    # 파일 경로 설정시, 상대 경로로 간편 작성을 위한 설정임 
+MEDIA_ULR = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-AUTH_USER_MODEL = "users.User"
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-}
