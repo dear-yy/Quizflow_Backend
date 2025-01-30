@@ -1,0 +1,36 @@
+# coding: utf-8
+
+# 장고 웹 프레임워크 
+django
+
+# DRF 라이브러리
+djangorestframework
+
+# 파이썬에서 보다 손쉬운 환경변수 처리 
+python-dotenv==1.0.0
+
+# 장고 내에서 보다 손쉬운 환경변수 처리 (Django 환경에 특화된 라이브러리)
+django-environ==0.10.0
+
+# openai api 사용을 위한 라이브러기 
+openai==0.28
+
+# 판다스 모듈
+pandas
+
+
+# HTTP 요청 및 HTML 파서 라이브러기 
+requests
+beautifulsoup4
+
+# 장고 채널스 라이브러리
+channels[daphne]~=4.0.0
+
+# JSON(JavaScript Object Notation)을 인코딩하고 디코딩하는 Python 라이브러리
+simplejson==3.19.3
+
+# 토큰 
+djangorestframework-simplejwt
+
+# 이미지 필드 사용 
+Pillow
