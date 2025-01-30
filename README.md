@@ -20,4 +20,12 @@
    ```activate```
 4. 백엔드 프로젝트 폴더 위치로 이동 
 5. 마이그레이션 (초기 DB생성)
-   ```python manage.py migrate```
+6. 관리자 생성
+   ```python manage.py createsuperuser```
+7. 서버 실행
+   ```python magage.py runserver```
+
+[migration 순서]
+- 앱 간 의존성 문제로 users앱 admin보다 먼저 migrate되어야 함
+  1. ```python manage.py makemigrations users```
+  2. ```python manage.py migrate``` 
