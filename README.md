@@ -18,14 +18,16 @@
 3. 가상환경 활성화
    ```cd C:\venvs\{가상 환경 이름}\Scripts```
    ```activate```
-4. 백엔드 프로젝트 폴더 위치로 이동 
-5. 마이그레이션 (초기 DB생성)
-6. 관리자 생성
+4. 패키지 설치
+  ```python -m pip install -r install_list.txt```
+5. 백엔드 프로젝트 폴더 위치로 이동
+7. 마이그레이션 (초기 DB생성)
+8. 관리자 생성
    ```python manage.py createsuperuser```
-7. 서버 실행
+9. 서버 실행
    ```python magage.py runserver```
 
 [migration 순서]
-  1. ```python manage.py migrate``` 
-  2. ```python manage.py makemigrations users```
-  3. ```python manage.py migrate``` 
+1. ```python manage.py migrate``` 
+2. ```python manage.py makemigrations users```
+3. ```python manage.py migrate``` 
