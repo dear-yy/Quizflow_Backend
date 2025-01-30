@@ -26,6 +26,6 @@
    ```python magage.py runserver```
 
 [migration 순서]
-- 앱 간 의존성 문제로 users앱 admin보다 먼저 migrate되어야 함
-  1. ```python manage.py makemigrations users```
-  2. ```python manage.py migrate``` 
+  1. ```python manage.py migrate``` 
+  2. ```python manage.py makemigrations users```
+  3. ```python manage.py migrate``` 
