@@ -1,9 +1,11 @@
 from rest_framework.response import Response
 from rest_framework import generics,status
+from rest_framework.permissions import IsAuthenticated
 from .permissions import CustomReadOnly
 from .serializers import RegisterSerializer, LoginSerializer, ProfileSerializer
 from django.contrib.auth.models import User
 from .models import Profile
+
 
 
 # 회원가입(생성)
@@ -30,4 +32,19 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer 
     permission_classes = [CustomReadOnly] # 조회&수정 권한
+
+
+# 회원 탈퇴
+class DeactivateAccountView(APIView):
+    def delete(self, request, *args, **kwargs):
+        user = request.user  # 현재 로그인된 사용자 가져오기
+        try:
+            # 해당 사용자의 프로필과 사용자 데이터 삭제
+            user.profile.delete()  # 프로필 삭제
+            user.delete()  # 사용자 삭제
+            return Response({"message": "Account successfully deleted."}, status=status.HTTP_204_NO_CONTENT)
+        except Profile.DoesNotExist:
+            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
     
