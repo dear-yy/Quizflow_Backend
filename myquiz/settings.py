@@ -51,6 +51,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne", # daphne의 runserver 명령어로 대체됨(즉, ASGI로 서버 구동)
     "django.contrib.admin", 
     "django.contrib.auth", # 인증을 위한 앱 # 기본 User 모델을 여기서 가져옴
     "django.contrib.contenttypes",
@@ -74,6 +75,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# 프론트엔드에서 리소스에 잘 접근할 수 있도록 처리 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+
+
 ROOT_URLCONF = "myquiz.urls"
 
 TEMPLATES = [
@@ -92,12 +98,9 @@ TEMPLATES = [
     },
 ]
 
-# 프론트엔드에서 리소스에 잘 접근할 수 있도록 처리 
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
 
 WSGI_APPLICATION = "myquiz.wsgi.application"
-
+ASGI_APPLICATION = "myquiz.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
