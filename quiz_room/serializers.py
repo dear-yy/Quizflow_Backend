@@ -5,11 +5,11 @@ from users.serializers import UserSerializer
 
 # QuizroomMessage Serializer
 class QuizroomMessageSerializer(serializers.ModelSerializer):
-    quizroom_id = serializers.PrimaryKeyRelatedField(queryset=Quizroom.objects.all())  # QuizroomMessageSerializer과 연결된 Quizroom의 ID를 직렬화 # 특정 방의 메세지 정보 불러올때 활용 
+    quizroom = serializers.PrimaryKeyRelatedField(queryset=Quizroom.objects.all())  # QuizroomMessageSerializer과 연결된 Quizroom의 ID를 직렬화 # 특정 방의 메세지 정보 불러올때 활용 
 
     class Meta:
         model = QuizroomMessage
-        fields = ['quizroom_id', 'message', 'is_gpt', 'timestamp']
+        fields = ['quizroom', 'message', 'is_gpt', 'timestamp']
 
 
 # Article Serializer
