@@ -64,7 +64,7 @@ class LoginSerializer(serializers.Serializer): # 모델과 상관없는 기능
 
         if user: # 인증 성공 경우
             token = Token.objects.get(user=user) # 인증된 사용자에 대해서 user와 연결된 토큰을 찾아서 반환
-            return token # 인증된 사용자와 연결된 토큰을 반환
+            return token, user.id # 인증된 사용자와 연결된 토큰 & user의 pk 반환
         raise serializers.ValidationError({"error" : "아이디 또는 비밀번호가 올바르지 않습니다."}) # 인증 실패 경우
     
 
