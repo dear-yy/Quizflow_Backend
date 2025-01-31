@@ -70,8 +70,6 @@ class LoginSerializer(serializers.Serializer): # 모델과 상관없는 기능
 
 
 # 프로필용(수정, 조회)
-
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
