@@ -1,10 +1,10 @@
 # coding: utf-8
 
 # 장고 웹 프레임워크 
-django
+django == 5.1.5
 
 # DRF 라이브러리
-djangorestframework
+djangorestframework == 3.15.2
 
 # 파이썬에서 보다 손쉬운 환경변수 처리 
 python-dotenv==1.0.0
