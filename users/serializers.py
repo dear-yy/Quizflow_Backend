@@ -5,6 +5,7 @@ from .models import Profile
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token # Token 모델 
 from rest_framework.validators import UniqueValidator # 이메일 중복 방지용 검증 도구
+from rest_framework.views import APIView
 
 
 # 회원가입용
