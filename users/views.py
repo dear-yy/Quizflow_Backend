@@ -46,7 +46,7 @@ class DeactivateAccountView(APIView):
             # 해당 사용자의 프로필과 사용자 데이터 삭제
             user.profile.delete()  # 프로필 삭제
             user.delete()  # 사용자 삭제
-            return Response({"message": "Account successfully deleted."}, status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Profile.DoesNotExist:
             return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
         except User.DoesNotExist:
