@@ -27,5 +27,5 @@ def create_user_profile(sender, instance, created, **kargs): # 다음 함수를 
 
     if created: # 새 User 객체가 생성될 때만 프로필을 생성하도록
         # Profile 모델의 user 필드에 새로 생성된 User 객체(instance)를 할당 후, 새로운 Profile 객체 생성하여여 DB에 저장
-        Profile.objects.create(user=instance) 
+        Profile.objects.create(user=instance, nickname=instance.username) # 프로필 생성시, 닉네임을 username으로 초기화
         
