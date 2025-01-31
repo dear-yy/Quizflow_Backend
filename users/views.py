@@ -21,8 +21,8 @@ class LoginView(generics.GenericAPIView): # 모델에 (CRUD)영향을 주지 않
     def post(self, request): # 클라이언트가 로그인 정보를 담아 POST 요청을 보내면 호출됨
         serializer = self.get_serializer(data=request.data) # 클라이언트의 요청 데이터를 역직렬화 # get_serializer()는 serializer_class에 지정된 LoginSerializer를 자동으로 불러옴
         serializer.is_valid(raise_exception=True) # 시리얼라이저에 전달된 데이터를 검증 # 데이터가 유효하지 않을 경우 유효성 검증 오류가 발생하는 옵션을 True로 설정
-        token = serializer.validated_data # LoginSerializer의 validate 메소드의 리턴값인 token 받아옴
-        return Response({"token":token.key}, status=status.HTTP_200_OK) #토큰 객체에서 key를 추출하여 클라이언트에게 전달
+        token, user_pk = serializer.validated_data # LoginSerializer의 validate 메소드의 리턴값인 token 받아옴
+        return Response({"token":token.key, "user_pk": user_pk}, status=status.HTTP_200_OK) #토큰 객체에서 key를 추출하여 클라이언트에게 전달
     
 
 # 프로필(조회,수정)
