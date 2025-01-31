@@ -23,8 +23,14 @@ class QuizroomsViewAPI(APIView):
             status=status.HTTP_201_CREATED
         )
 
-# class QuizRoomViewAPI(APIView):
+# class QuizRoomDetailViewAPI(APIView):
 #     '''
-#         - 특정 룸 조회 (로그인 유저 본인 )
-#         - 특정 룸 삭제 (로그인 유저 본인)
+#         - 특정 룸 조회 (로그인 유저 본인) -> 메세지 내역 볼 수 있게 시리얼라이저 구현해야 할 듯 
+#     '''
+
+
+# class ArticlesViewAPI(APIView):
+#     '''
+#         - 특정 Room의 아티클 목록 조회 (로그인 유저 본인)
+#         - 특정 Room에 아티클 생성 (로그인 유저 본인)
 #     '''
