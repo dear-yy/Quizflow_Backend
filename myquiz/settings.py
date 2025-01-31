@@ -10,18 +10,32 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+from environ import Env # env파일 로드를 위해, (django-environ라이브러리의 기능)
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ENV 파일 로드  
+env = Env()
+env_path = BASE_DIR/".env" # .env파일의 경로를 BASE_DIR 아래 .env로 지정 
+# print("env 파일 경로:", env_path)  # 경로가 제대로 출력되는지 확인
+if env_path.is_file(): # 해당 경로에 파일이 존재하면,
+    with env_path.open("rt", encoding="utf-8") as f: # rt: 읽기+텍스트 모드
+        env.read_env(f, overwirte=True) # 이미 같은 이름의 환경변수가 로딩되어 있더라도, 덮어쓰기로 설정
+
+
+# .env에 키 등록시, (key=value) 형식에서 = 양쪽에 공백이 없어야함!
+OPENAI_API_KEY = env.str("OPENAI_API_KEY")
+GOOGLE_SEARCH_ENGINE_ID = env.str("GOOGLE_SEARCH_ENGINE_ID")
+GOOGLE_API_KEY = env.str("GOOGLE_API_KEY")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # 토큰 암호화에 사용하는 키 # 이 키가 노출되지 않는다면, 암호화된 토큰으로 어떤 정보도 알아낼 수 없음
-SECRET_KEY = "django-insecure-egdvaa^e5^i^rozn=58*h&(-j&tio)v)_-kzj-n8$whey7ikm)"
+SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
