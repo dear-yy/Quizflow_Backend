@@ -80,6 +80,10 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # UserSerializer를 read_only로 포함
 
+    nickname = serializers.CharField(required=False)  # nickname 필드를 선택적으로 설정
+    image = serializers.ImageField(required=False) 
+    ranking_score = serializers.IntegerField(required=False)
+
     class Meta:
         model = Profile
         fields = ["user", "nickname", "image", "ranking_score"]  # ranking_score 필드 추가
