@@ -70,7 +70,17 @@ class LoginSerializer(serializers.Serializer): # 모델과 상관없는 기능
 
 
 # 프로필용(수정, 조회)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "email", "id"]  # User의 username과 email만 포함
+
+
 class ProfileSerializer(serializers.ModelSerializer):
-    class Meta():
+    user = UserSerializer(read_only=True)  # UserSerializer를 read_only로 포함
+
+    class Meta:
         model = Profile
-        fields = ["nickname", "image"]
+        fields = ["user", "nickname", "image", "ranking_score"]  # ranking_score 필드 추가

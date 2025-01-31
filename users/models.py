@@ -8,9 +8,9 @@ class Profile(models.Model):
     # User가 삭제될 때, 해당 프로필도 삭제
     # Profile의 기본 키를 User 모델의 pk로 설정(통합적으로 관리)
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
- 
     nickname = models.CharField(max_length=128)
     image = models.ImageField(upload_to='profile/', default='default.png') # 업로드 경로 & 기본 이미지 설정
+    ranking_score = models.IntegerField(default=0)  # 랭킹 점수 추가
 
     def __str__(self):
         return self.nickname
