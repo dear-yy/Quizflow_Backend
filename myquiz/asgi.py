@@ -6,19 +6,18 @@ It exposes the ASGI callable as a module-level variable named ``application``.
 For more information on this file, see
 https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
-
+# myquiz.asgi.py
 import os
 from django.core.asgi import get_asgi_application
 from channels.auth import AuthMiddlewareStack
 # http 프로토콜 요청 외에 websocket 프로토콜 요청도 처리할 수 있도록
-    # ProtocolTypeRouter: 요청의 프로토콜 종류에 따라 다른 애플리케이션을 라우팅하는 역할(프로토콜 라우팅)
-    # URLRouter: 특정 프로토콜에 대한 요청을 처리하기 위한 라우팅 역할(url 라우팅)
 from channels.routing import ProtocolTypeRouter, URLRouter
+# from quiz_room.middlewares import 
 
 # Django의 설정 파일을 지정
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myquiz.settings")
 
-# Django의 ASGI 애플리케이션을 반환((Django의 기본 ASGI 애플리케이션))
+# Django의 ASGI 애플리케이션을 반환
 django_asgi_app = get_asgi_application()
 
 # 임포트 순서 중요!(django_asgi_app 초기화 후에)
@@ -31,12 +30,11 @@ application = ProtocolTypeRouter(
         "http": django_asgi_app,
 
         # "websocket" 프로토콜에 요청 대해 
+            # AuthMiddlewareStack로 인증처리 (scope["user"]에 로그인된 사용자 정보를 포함) 
             # chat.routing.websocket_urlpatterns로 라우팅을 처리
-            # 현재 요청 유저의 인스턴스는 현재 설정으로는 제공되지 않으므로 AuthMiddlewareStack을 활용 
-                # AuthMiddlewareStack: 쿠키, 세션, 인증 지원 추가 
-                # 다음 코드를 적용하면, Consumer 클래스의 scope에 user, cookie, sessiokn 키가 추가된 것을 확인 할 수 있음
-        "websocket": AuthMiddlewareStack(
-            URLRouter(quiz_room.routing.websocket_urlpatterns)
+            
+        "websocket": AuthMiddlewareStack( #AuthMiddlewareStack
+                URLRouter(quiz_room.routing.websocket_urlpatterns)
         )
     }
 )

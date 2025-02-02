@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Quizroom, Article, QuizroomMessage
@@ -11,8 +12,11 @@ class QuizroomsViewAPI(APIView):
         - 룸 목록 조회 (로그인 유저 본인)
         - 룸 생성 (로그인 유저 본인 / 입력값 없이 POST 요청 시 생성)
     '''
+    # 로그인 인증
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        quizrooms = Quizroom.objects.filter(user=request.user)  # 로그인한 유저의 룸만 필터링
+        quizrooms = Quizroom.objects.filter(user=request.user)  # 유저 본인의 룸만 필터링
         serializer = QuizroomSerializer(quizrooms, many=True) # 직렬화
         return Response(serializer.data, status=status.HTTP_200_OK)
 
