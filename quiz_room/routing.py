@@ -22,7 +22,7 @@ ws.onopen = function(e) { console.log("장고 채널스 서버와 웹소켓 연�
 ws.onclose = function(e) { console.log("장고 채널스 서버와 웹소켓이 끊어졌습니다."); };
 ws.onerror = function(e) { console.error("장고 채널스 서버와의 웹소켓 연결 중에 오류가 발생했습니다.", e); };
 
-// 서버에서 (클라이언트)메시지가 수신 시 호출됨
+// 서버에서 (클라이언트)메시지가 수신 시 호출됨 // send_json 코드 수행시
 ws.onmessage = function(e) {                 // e.data는 수신 데이터
   console.group("[수신 메세지]");            // 콘솔 로그 그룹화(시작)
   console.log(typeof e.data);               // JSON 형식일 경우 "string" 반환

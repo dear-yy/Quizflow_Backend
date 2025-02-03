@@ -5,7 +5,7 @@ from channels.generic.websocket import JsonWebsocketConsumer
 # import openai
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
-from quiz_room.models import Quizroom
+from quiz_room.models import Quizroom, QuizroomMessage
 
 ''' 
 # 1. 토큰 받아오기 
@@ -19,6 +19,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
     def connect(self):
         print("연결 중입니다.")
         self.user = None # 인증 전이므로, None으로 초기화
+        self.room = None # 조회 전이므로, None으로 초기화
         self.accept()
 
     def disconnect(self, close_code):
@@ -44,8 +45,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 return 
 
             # 채팅방 조회
-            room = self.get_room() # 채팅방 조회
-            if room is None: 
+            self.room = self.get_room() # 채팅방 조회
+            if self.room is None: 
                 print("조회할 수 없는 방이므로 연결이 종료됩니다...")
                 self.close() # 존재하지 않는 방이면 연결 거부
                 return 
@@ -54,7 +55,17 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 
         else: # 이미 인증된 사용자인 경우
             print(f"📩 {self.user}의 메시지: {content_dict}")
-            self.send_json(content_dict)  # 받은 메시지를 그대로 반환 (Echo)
+            self.send_json(content_dict)  # 받은 메시지를 그대로 반환 (Echo/ onmessage)
+            
+            # 메시지 내용 모델 객체로 저장
+            message_content = content_dict.get("message")
+            if message_content:
+                if self.room: 
+                    QuizroomMessage.objects.create(
+                        quizroom=self.room,
+                        message=message_content,
+                        is_gpt=False # 일단 사용자 메세지로 셋팅
+                    )
 
 
     # 채팅방 조회
