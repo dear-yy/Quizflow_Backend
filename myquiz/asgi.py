@@ -33,9 +33,7 @@ application = ProtocolTypeRouter(
             # AuthMiddlewareStack로 인증처리 (scope["user"]에 로그인된 사용자 정보를 포함) 
             # chat.routing.websocket_urlpatterns로 라우팅을 처리
             
-        "websocket": AuthMiddlewareStack( #AuthMiddlewareStack
-                URLRouter(quiz_room.routing.websocket_urlpatterns)
-        )
+        "websocket": URLRouter(quiz_room.routing.websocket_urlpatterns)
     }
 )
 
