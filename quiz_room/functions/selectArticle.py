@@ -205,6 +205,7 @@ def selectArticle(query:str, user_feedback_list:list) -> Dict:
             recommend_article_title = info_for_the_article.iloc[0]["Title"]
             recommend_article_body = info_for_the_article.iloc[0]["Body"]
             recommend_article_url = info_for_the_article.iloc[0]["URL"]
+            recommend_article_reason = info_for_the_article.iloc[0]["Reason"]
 
             # 본문이 유효한지 확인
             # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
@@ -217,6 +218,7 @@ def selectArticle(query:str, user_feedback_list:list) -> Dict:
         "title": recommend_article_title,
         "body": recommend_article_body, 
         "url": recommend_article_url,
+        "reason": recommend_article_reason, 
         "retry_extracted_keywords": extracted_keywords # 키워드 재추출시, DB에 반영하기 위함 
     }
 
@@ -314,7 +316,7 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
     # 추천 정보 추출 프로세스
     while True:
         # 추천 아티클 탐색
-        recommend_article = find_recommend_article(df, user_feedback) 
+        recommend_article, reason = find_recommend_article(df, user_feedback) 
 
         # 아티클 존재 여부 파악
         if recommend_article.empty: # 추천된 아티클이 비어 있는 경우
@@ -346,8 +348,8 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
 
         # 본문이 유효할 경우 DataFrame 생성 및 반환
         info_for_the_article = pd.DataFrame(
-            [[title, url, article_body]],
-            columns=["Title", "URL", "Body"]
+            [[title, url, article_body, reason]],
+            columns=["Title", "URL", "Body", "Reason"]
         )
     
         return info_for_the_article
@@ -355,7 +357,7 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
 
 
 # 추천 아티클 결정#
-def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> pd.DataFrame:
+def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> Tuple[pd.DataFrame, str]:
     # 아티클 목록에 index 포함
     article_titles = df_google["Title"].tolist()
     article_descriptions = df_google["Description"].tolist()
@@ -426,25 +428,26 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> p
                 # keywords_list = list(content_dict.values())
             except json.JSONDecodeError as e:
                 print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
-                return pd.DataFrame()
+                return (pd.DataFrame(), "")
                 # continue  # 재시도: while문 처음부터
 
             # content 존재 검증
-            if not isinstance(content_dict["index"], int):
-                return pd.DataFrame()
-            elif not isinstance(content_dict["reason"], str) or not content_dict["reason"]:
-                return pd.DataFrame()
+            if not isinstance(content_dict["index"], int): 
+                return (pd.DataFrame(), "")
+            elif not isinstance(content_dict["reason"], str) or not content_dict["reason"]: # 타입과 존재 여부
+                return (pd.DataFrame(), "")
 
             # 정수 index 저장 
             recommended_index = int(content_dict["index"])  
             # index가 DataFrame에 존재하는지 확인
             if recommended_index not in df_google.index:
                 print(f"추천된 index({recommended_index})는 존재하지 않습니다.")
-                return pd.DataFrame()
+                return (pd.DataFrame(), "")
 
             # 해당 index로 행(해당 기사 정보) 반환
             recommended_article = df_google.loc[[recommended_index]] 
-            return recommended_article # 결과 DataFrame 형태로 반환
+            reason = content_dict["reason"]
+            return (recommended_article, reason) # 결과 DataFrame 형태로 반환
 
         except openai.error.RateLimitError:
             print("Rate limit reached. Retrying in 40 seconds...")

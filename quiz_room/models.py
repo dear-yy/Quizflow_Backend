@@ -10,7 +10,7 @@ class Quizroom(models.Model):
     start_date = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
     end_date = models.DateTimeField(null=True, blank=True) # cnt가 3이 될 경우 등록
     total_score = models.IntegerField(default=0)
-    cnt = models.IntegerField(default=0) # 1개의 아티클에 대한 퀴즈 사이클 완료 시 # quiz3 사용자가 답변을 제출한 순간 카운트 됨
+    cnt = models.IntegerField(default=0) # 1개의 아티클에 대한 퀴즈 사이클 완료 시 # quiz3 사용자가 답변을 제출한 순간 카운트 됨 # 아티클 조회 시 사용해도 될 듯 
 
 
 # QuizroomMessage 모델: Quizroom 모델에서 생성되는 모든(user&gpt) 메세지 기록
