@@ -5,7 +5,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from .models import Quizroom, Article, QuizroomMessage
-from .serializers import QuizroomCreateSerializer, QuizroomListSerializer
+from .serializers import QuizroomCreateSerializer, QuizroomListSerializer, MessageListSerializer
 
 # Create your views here.
 class QuizroomsViewAPI(APIView):
@@ -29,24 +29,22 @@ class QuizroomsViewAPI(APIView):
             status=status.HTTP_201_CREATED
         )
 
-# # 메세지 내역 조회
-# class QuizRoomDetailViewAPI(APIView):
+# 메세지 내역 조회
+class MessageListViewAPI(APIView):
+    '''
+    사용자의 특정 퀴즈룸의 메세지 내역 조회
+    '''
+    
+    def get(self, request, room_id):
+        try:
+            quizroom = get_object_or_404(Quizroom, id=room_id, user=request.user)  # 본인의 방만 조회 가능
+            serializer = MessageListSerializer(quizroom)
+            return Response( serializer.data , status=status.HTTP_200_OK)
+        except Quizroom.DoesNotExist:
+            return Response({"error": "방을 찾을 수 없거나 접근이 승인되지 않았습니다"}, status=status.HTTP_404_NOT_FOUND)
 
-#     def get(self, request, pk):
-#         quizroom = get_object_or_404(Quizroom, pk=pk, user=request.user)  # 본인의 방만 조회 가능
-#         serializer = QuizroomSerializer(quizroom)
 
-#         # 🔹 QuizroomMessage 추가: 해당 방의 대화 기록도 포함
-#         messages = QuizroomMessage.objects.filter(quizroom=quizroom)
-#         message_serializer = QuizroomMessageSerializer(messages, many=True)
 
-#         return Response(
-#             {
-#                 "quizroom": serializer.data,
-#                 "messages": message_serializer.data  # 🔹 메시지 내역 포함
-#             },
-#             status=status.HTTP_200_OK
-#         )
 
 # # 특정 Room의 아티클 목록 조회 및 생성
 # class ArticlesViewAPI(APIView):
@@ -87,26 +85,26 @@ class QuizroomsViewAPI(APIView):
 #             status=status.HTTP_201_CREATED
 #         )
 
-class QuizEndViewAPI(APIView):
-    '''
-        - 퀴즈 종료 (로그인 유저 본인)
-        - 퀴즈 종료 시 end_date를 현재 시간으로 업데이트
-    '''
-    permission_classes = [IsAuthenticated]
+# class QuizEndViewAPI(APIView):
+#     '''
+#         - 퀴즈 종료 (로그인 유저 본인)
+#         - 퀴즈 종료 시 end_date를 현재 시간으로 업데이트
+#     '''
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request, quizroom_id):
-        # 퀴즈룸을 가져오고, 해당 사용자가 본인인지 확인
-        quizroom = get_object_or_404(Quizroom, id=quizroom_id, user=request.user)
+#     def post(self, request, quizroom_id):
+#         # 퀴즈룸을 가져오고, 해당 사용자가 본인인지 확인
+#         quizroom = get_object_or_404(Quizroom, id=quizroom_id, user=request.user)
 
-        # 퀴즈 종료 시 end_date를 현재 시간으로 설정
-        quizroom.end_date = timezone.now()
-        quizroom.save()
+#         # 퀴즈 종료 시 end_date를 현재 시간으로 설정
+#         quizroom.end_date = timezone.now()
+#         quizroom.save()
 
-        # 퀴즈 종료 처리 후 응답 반환
-        return Response(
-            {"message": "퀴즈가 종료되었습니다.", "quizroom": QuizroomSerializer(quizroom).data},
-            status=status.HTTP_200_OK
-        )
+#         # 퀴즈 종료 처리 후 응답 반환
+#         return Response(
+#             {"message": "퀴즈가 종료되었습니다.", "quizroom": QuizroomSerializer(quizroom).data},
+#             status=status.HTTP_200_OK
+#         )
 
     
-#     #위의 코드의 주석 부분은 아직 구현이 완성되지 않은 부분임
+# #     #위의 코드의 주석 부분은 아직 구현이 완성되지 않은 부분임
