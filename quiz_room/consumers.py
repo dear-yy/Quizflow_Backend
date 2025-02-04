@@ -6,7 +6,7 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage
-from django.views.decorators.csrf import csrf_exempt
+# from django.views.decorators.csrf import csrf_exempt
 
 ''' 
 # 1. 토큰 받아오기 
@@ -34,7 +34,6 @@ from django.views.decorators.csrf import csrf_exempt
 '''
 
 # 서버측 웹소켓 연결 처리 
-@csrf_exempt # WebSocket consumer에서 csrf_exempt 적용
 class QuizroomConsumer(JsonWebsocketConsumer):
     def connect(self):
         print("연결 중입니다.")
