@@ -14,6 +14,24 @@ from quiz_room.models import Quizroom, QuizroomMessage
 # 4. 방 반환
 '''
 
+'''
+[now_stage 흐름]
+1. 사용자(feedback) > user_feedback 메세지 
+2. gpt(article) > recommend Article 메세지 반환 
+
+3. gpt(quiz_1) > 객관식 문제1 메세지 반환 
+4. 사용자(user_ans_1) > 객관식 문제1 답 메세지 반환 
+5. gpt(grading_1) > 채점 
+
+6. gpt(quiz_2) > 객관식 문제2 메세지 반환 
+7. 사용자(user_ans_2) > 객관식 문제2 답 메세지 반환 
+8. gpt(grading_2) > 채점 
+
+9.  gpt(quiz_3) > 서술형 문제 메세지 반환 
+10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
+11. gpt(grading_3) > 채점
+'''
+
 # 서버측 웹소켓 연결 처리 
 class QuizroomConsumer(JsonWebsocketConsumer):
     def connect(self):

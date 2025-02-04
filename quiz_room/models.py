@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 class Quizroom(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="rooms") # 유저가 생성한 quizroom 접근 (user.rooms.all)
     # now_stage = models.CharField(max_length=50, default="article")# Quizroom 모델에 stage 필드 추가(메세지 복원시 활용)
-        # ["article", "quiz_1", "grading_1", "quiz2", "grading_2", "quiz_3", grading_3"]
     keyword_list = models.JSONField(default=list) # 아티클 생성에 활용
     user_feedback_list = models.JSONField(default=list) # 아티클 생성에 활용
     start_date = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
