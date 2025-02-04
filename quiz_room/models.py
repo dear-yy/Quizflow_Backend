@@ -21,6 +21,7 @@ class QuizroomMessage(models.Model):
     is_gpt = models.BooleanField()
     timestamp = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
 
+
 class Article(models.Model):
     quizroom = models.ForeignKey(Quizroom, on_delete=models.CASCADE, related_name="articles") # quizroom에 속한 아티클들 접근(quizroom.articles.all)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="articles") # user가 작성한 아티클들 접근 (user.articles.all)
