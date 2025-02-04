@@ -32,7 +32,7 @@ class QuizroomCreateSerializer(serializers.ModelSerializer):
 # Quizroom List Serializer
 class QuizroomListSerializer(serializers.ModelSerializer):
     end_date = serializers.DateTimeField(allow_null=True, required=False)  # 종료 날짜 (선택적)
-
+    
     class Meta:
         model = Quizroom
         fields = ['id','start_date', 'update_date', 'end_date', 'total_score', 'cnt']
