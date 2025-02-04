@@ -83,7 +83,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 self.close()
                 return
             
-        elif type=="message":  # 이미 인증된 사용자인 경우
+        elif type=="user":  # 이미 인증된 사용자인 경우
             print(f"📩 {self.user}의 메시지: {content_dict}")
             # 메시지 내용 모델 객체로 저장
             message_content = content_dict.get("message")
