@@ -56,7 +56,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 try: 
                     self.user = Token.objects.get(key=token).user # 토큰으로 사용자 인증
                     print(f'{self.user}의 토큰이 존재합니다')
-                    print("~ 방을 조회하는 중입니다. 잠시만 기다려 주세요 ~")
+                    print("~웹소켓에 연결되었습니다~ 잠시만 기다려 주세요 ~") 
                 except Token.DoesNotExist: # 유효하지 않은 토큰
                     print(f'유효하지 않은 토큰이므로 연결이 종료됩니다...')
                     self.close()
