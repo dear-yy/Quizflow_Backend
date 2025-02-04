@@ -77,7 +77,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 
             # 3. 퀴즈 진행 상태 검사, cnt 값 검증
             if self.room.cnt >= 3:
-                print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
+                print("완료된 퀴즈룸 입니다. 연결을 종료합니다.")
                 self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
                 self.close()
                 return
@@ -103,7 +103,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             # print(f"🔄 이전 퀴즈 상태 복원: {self.now_stage + 1}번 아티클 진행 중입니다.")
 
         # 현재 stage가 완료되면 다음 stage로 갱신하는 로직
-        # 예시로, 퀴즈 단계가 끝날 때마다 cnt 값을 증가시킬 수 있음
+        # 예시로, 퀴즈 (grading_3)단계가 끝날 때마다 cnt 값을 증가시킬 수 있음
 
         # else:  # 이미 인증된 사용자인 경우
             # print(f"📩 {self.user}의 메시지: {content_dict}")

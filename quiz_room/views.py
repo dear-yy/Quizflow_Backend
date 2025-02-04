@@ -5,7 +5,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from .models import Quizroom, Article, QuizroomMessage
-from .serializers import QuizroomSerializer
+from .serializers import QuizroomCreateSerializer, QuizroomListSerializer
 
 # Create your views here.
 class QuizroomsViewAPI(APIView):
@@ -18,18 +18,18 @@ class QuizroomsViewAPI(APIView):
 
     def get(self, request):
         quizrooms = Quizroom.objects.filter(user=request.user)  # 유저 본인의 룸만 필터링
-        serializer = QuizroomSerializer(quizrooms, many=True) # 직렬화
+        serializer = QuizroomListSerializer(quizrooms, many=True) # 직렬화
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         quizroom = Quizroom.objects.create(user=request.user) # Room 생성
-        serializer = QuizroomSerializer(quizroom) # 직렬화
+        serializer = QuizroomCreateSerializer(quizroom) # 직렬화
         return Response( # 생성된 룸 정보 반환
             {"message": "방이 성공적으로 생성되었습니다!", "quizroom": serializer.data},
             status=status.HTTP_201_CREATED
         )
 
-# # 특정 룸 조회
+# # 메세지 내역 조회
 # class QuizRoomDetailViewAPI(APIView):
 
 #     def get(self, request, pk):

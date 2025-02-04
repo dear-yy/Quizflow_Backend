@@ -23,9 +23,23 @@ class ArticleSerializer(serializers.ModelSerializer):
         model = Article
         fields = ['quizroom', 'user', 'user_feedback', 'title', 'url', 'body', 'reason']
 
-
 # Quizroom Serializer
-class QuizroomSerializer(serializers.ModelSerializer):
+class QuizroomCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quizroom
+        fields = ['id']
+
+# Quizroom List Serializer
+class QuizroomListSerializer(serializers.ModelSerializer):
+    end_date = serializers.DateTimeField(allow_null=True, required=False)  # 종료 날짜 (선택적)
+    
+    class Meta:
+        model = Quizroom
+        fields = ['id','start_date', 'end_date', 'total_score', 'cnt']
+
+
+# Message List Serializer
+class MessageListSerializer(serializers.ModelSerializer):
     end_date = serializers.DateTimeField(allow_null=True, required=False)  # 종료 날짜 (선택적)
 
     # 관련된 유저,메시지 및 아티클을 nested로 포함 # read_only로 직렬화
