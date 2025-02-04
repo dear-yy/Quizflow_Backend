@@ -35,4 +35,4 @@ class QuizroomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quizroom
-        fields = ['user', 'keyword_list', 'user_feedback_list', 'start_date', 'end_date', 'total_score', 'cnt', 'messages', 'articles']
+        fields = ['id', 'user', 'keyword_list', 'user_feedback_list', 'start_date', 'end_date', 'total_score', 'cnt', 'messages', 'articles']
