@@ -6,6 +6,7 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage
+# from django.views.decorators.csrf import csrf_exempt
 
 ''' 
 # 1. 토큰 받아오기 
