@@ -75,13 +75,26 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             else: 
                 print(f"[{self.user}의 방]") # 해당 방으로 연결
 
-        # 3. 퀴즈 진행 상태 검사, cnt 값 검증
-        if self.room.cnt >= 3:
-            print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
-            self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
-            self.close()
-            return
-        
+            # 3. 퀴즈 진행 상태 검사, cnt 값 검증
+            if self.room.cnt >= 3:
+                print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
+                self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
+                self.close()
+                return
+
+
+        else:  # 이미 인증된 사용자인 경우
+            print(f"📩 {self.user}의 메시지: {content_dict}")
+            # 메시지 내용 모델 객체로 저장
+            message_content = content_dict.get("message")
+            if message_content:
+                if self.room: 
+                    QuizroomMessage.objects.create(
+                        quizroom=self.room,
+                        message=message_content,
+                        is_gpt=False # 일단 사용자 메세지로 셋팅
+                    )
+
         # 4. 퀴즈 진행 상태 복원
         # self.quiz_stage = self.room.quiz_stage # 아직 모델 수정 안해뒀음 
         # 예를 들어, cnt 값에 따라 퀴즈 단계를 설정할 수 있음
