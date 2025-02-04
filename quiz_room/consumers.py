@@ -147,3 +147,63 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         # 조회한 채팅방 객체 반환
         return room 
    
+
+
+
+# 추천 아티클 생성 로직 참고하기~
+'''
+room_id = kwargs.get("room_id") # 현재 url에서 <int:room_id> 인자 가져오기
+        try: # 로그인한 유저의 특정 룸만 조회
+            room = Room.objects.get(pk=room_id, user=request.user)
+        except Room.DoesNotExist:
+            return Response({"error": "방을 찾을 수 없거나 접근이 승인되지 않았습니다"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        serializer = ArticleCreateSerializer(data=request.data) # 역직렬화 
+        if serializer.is_valid(): # 입력(역직렬화) 데이터 검증
+            user_feedback = serializer.validated_data['user_feedback']
+            
+            # 키워드 추출 
+            user_feedback_list = room.user_feedback_list
+            keyword_list = room.keyword_list
+    
+            new_keywords, query = get_keywords_from_feedback(user_feedback, user_feedback_list, keyword_list)
+            if new_keywords is None:
+                return Response({"errors": "키워드 추출 에러가 발생하여 아티클 추천에 실패하였습니다. user_feedback을 다시 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST) 
+                
+            # 아티클 추천
+            recommended_article = selectArticle(query, user_feedback_list) # 현재 사용자 요청 # 누적 사용자 요청 내역
+            retry_extracted_keywords = recommended_article["retry_extracted_keywords"]
+            # 아티클 생성 및 Room 연결
+            article = Article.objects.create(
+                user=request.user,
+                room=room,
+                user_feedback=user_feedback,
+                title=recommended_article['title'],
+                body=recommended_article['body'],
+                url=recommended_article['url'],
+                # reason=recommended_article['reason'], # myquiz프로젝트에서
+            )
+
+            # 연결된 Room 객체 수정된 정보 저장
+            if  retry_extracted_keywords is not None: # 키워드 추출이 재시도된 경우 
+                if isinstance(retry_extracted_keywords, list):  # 리스트 형태인지 확인
+                    # 두 리스트 병합 # 중복 제거 # list 형태로 변환 
+                    room.keyword_list = list(set(room.keyword_list + retry_extracted_keywords))
+            else:
+                if isinstance(new_keywords, list):  # 리스트 형태인지 확인
+                    room.keyword_list = list(set(room.keyword_list + new_keywords))
+            room.save() 
+
+            # 새로 생성된 아티클 직렬화 후 반환
+            article_serializer = ArticleSerializer(article)
+            return Response(
+                {"message": "아티클이 성공적으로 추천(생성)되었습니다!", "article": article_serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        # 역직렬화 수행한 시리얼라이저 검증 실패 시(ex> 입력 형식 에러)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST) 
+
+
+    
+'''
