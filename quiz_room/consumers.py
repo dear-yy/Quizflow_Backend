@@ -6,7 +6,7 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage
-# from django.views.decorators.csrf import csrf_exempt
+import json
 
 ''' 
 # 1. 토큰 받아오기 
@@ -48,7 +48,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         self.room = None # 방 정보 초기화
         self.now_stage = None  # 퀴즈 진행 상태 초기화
         
-    def receive_json(self, content_dict, **kwargs):
+    def receive_json(self, content_dict_json, **kwargs):
+        content_dict = json.loads(content_dict_json)
         if self.user is None: # 사용자 인증 전 상태
             # 1. 토큰 검사
             type = content_dict.get("type")
