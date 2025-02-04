@@ -48,13 +48,15 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         self.room = None # 방 정보 초기화
         self.now_stage = None  # 퀴즈 진행 상태 초기화
         
-    def receive_json(self, content_dict_json, **kwargs):
-        content_dict = json.loads(content_dict_json)
-        if self.user is None: # 사용자 인증 전 상태
+    def receive_json(self, content_dict, **kwargs):
+        #print (f'json{content_dict_json}')
+        #content_dict = json.loads(content_dict_json)
+        print(f'{content_dict}')
+        type = content_dict.get("type")
+        if self.user is None and type=="auth": # 사용자 인증 전 상태
             # 1. 토큰 검사
-            type = content_dict.get("type")
             token = content_dict.get("token") # 클라이언트에서 보낸 토큰 가져오기
-            if token and type=="auth": # 토큰 입력 존재
+            if token : # 토큰 입력 존재
                 try: 
                     self.user = Token.objects.get(key=token).user # 토큰으로 사용자 인증
                     print(f'{self.user}의 토큰이 존재합니다')
