@@ -35,7 +35,7 @@ class QuizroomListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quizroom
-        fields = ['id','start_date', 'end_date', 'total_score', 'cnt']
+        fields = ['id','start_date', 'update_date', 'end_date', 'total_score', 'cnt']
 
 
 # Message List Serializer

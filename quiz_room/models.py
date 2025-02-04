@@ -8,6 +8,7 @@ class Quizroom(models.Model):
     keyword_list = models.JSONField(default=list) # 아티클 생성에 활용
     user_feedback_list = models.JSONField(default=list) # 아티클 생성에 활용
     start_date = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
+    update_date = models.DateTimeField(auto_now=True) # 갱신된 시간 (생성&수정)
     end_date = models.DateTimeField(null=True, blank=True) # cnt가 3이 될 경우 등록
     total_score = models.IntegerField(default=0)
     cnt = models.IntegerField(default=0) # 1개의 아티클에 대한 퀴즈 사이클 완료 시 # quiz3 사용자가 답변을 제출한 순간 카운트 됨 # 아티클 조회 시 사용해도 될 듯 
