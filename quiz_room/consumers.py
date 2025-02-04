@@ -20,11 +20,14 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         print("연결 중입니다.")
         self.user = None # 인증 전이므로, None으로 초기화
         self.room = None # 조회 전이므로, None으로 초기화
+        self.now_stage = None  # 퀴즈 진행 상태 초기화
         self.accept()
 
     def disconnect(self, close_code):
         print("연결을 중단합니다.")
-        self.user = None  # 연결 해제 시 사용자 정보 초기화
+        self.user = None  # 사용자 정보 초기화
+        self.room = None # 방 정보 초기화
+        self.now_stage = None  # 퀴즈 진행 상태 초기화
         
     def receive_json(self, content_dict, **kwargs):
         if self.user is None: # 사용자 인증 전 상태
@@ -53,19 +56,21 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             else: 
                 print(f"[{self.user}의 방]") # 해당 방으로 연결
 
+        # cnt 값 검증(퀴즈 세트 완료 여부)
+        if self.room.cnt >= 3:
+            print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
+            self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
+            self.close()
+            return
+        
+        # 퀴즈 진행 상태 복원
+        # self.quiz_stage = self.room.quiz_stage # 아직 모델 수정 안해뒀음 
+        # print(f"🔄 이전 퀴즈 상태 복원: {self.room.cnt + 1}번 아티클 {self.quiz_stage}")
+        # 현재 stage완료 시 다음 stage로 갱신하는 로직 구현하기
+
         else: # 이미 인증된 사용자인 경우
             print(f"📩 {self.user}의 메시지: {content_dict}")
-
-            # cnt 값 검증
-            if self.room.cnt >= 3:
-                print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
-                self.send_json({
-                    "error": "최대 퀴즈 수를 초과했습니다."
-                })
-                self.close()
-                return
-
-            self.send_json(content_dict)  # 받은 메시지를 그대로 반환 (Echo/ onmessage)
+            # self.send_json(content_dict)  # 받은 메시지를 그대로 반환 (Echo/ onmessage)
             
             # 메시지 내용 모델 객체로 저장
             message_content = content_dict.get("message")
