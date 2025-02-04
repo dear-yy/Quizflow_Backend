@@ -51,8 +51,9 @@ class QuizroomConsumer(JsonWebsocketConsumer):
     def receive_json(self, content_dict, **kwargs):
         if self.user is None: # 사용자 인증 전 상태
             # 1. 토큰 검사
+            type = content_dict.get("type")
             token = content_dict.get("token") # 클라이언트에서 보낸 토큰 가져오기
-            if token: # 토큰 입력 존재
+            if token and type=="auth": # 토큰 입력 존재
                 try: 
                     self.user = Token.objects.get(key=token).user # 토큰으로 사용자 인증
                     print(f'{self.user}의 토큰이 존재합니다')
@@ -81,8 +82,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
                 self.close()
                 return
-
-
+            
         else:  # 이미 인증된 사용자인 경우
             print(f"📩 {self.user}의 메시지: {content_dict}")
             # 메시지 내용 모델 객체로 저장
