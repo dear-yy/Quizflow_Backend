@@ -49,7 +49,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         
     def receive_json(self, content_dict, **kwargs):
         if self.user is None: # 사용자 인증 전 상태
-            # 토큰 검사
+            # 1. 토큰 검사
             token = content_dict.get("token") # 클라이언트에서 보낸 토큰 가져오기
             if token: # 토큰 입력 존재
                 try: 
@@ -65,7 +65,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 self.close()
                 return 
 
-            # 채팅방 조회
+            # 2. 채팅방 조회
             self.room = self.get_room() # 채팅방 조회
             if self.room is None: 
                 print("조회할 수 없는 방이므로 연결이 종료됩니다...")
@@ -74,35 +74,44 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             else: 
                 print(f"[{self.user}의 방]") # 해당 방으로 연결
 
-        # cnt 값 검증(퀴즈 세트 완료 여부)
+        # 3. 퀴즈 진행 상태 검사, cnt 값 검증
         if self.room.cnt >= 3:
             print("최대 퀴즈 수를 초과했습니다. 연결을 종료합니다.")
             self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
             self.close()
             return
         
-        # 퀴즈 진행 상태 복원
+        # 4. 퀴즈 진행 상태 복원
         # self.quiz_stage = self.room.quiz_stage # 아직 모델 수정 안해뒀음 
+        # 예를 들어, cnt 값에 따라 퀴즈 단계를 설정할 수 있음
+        # if self.now_stage is None:
+            # self.now_stage = self.room.cnt  # 퀴즈 상태는 cnt 값에 기반
+            # print(f"🔄 이전 퀴즈 상태 복원: {self.now_stage + 1}번 아티클 진행 중입니다.")
+
+        # 현재 stage가 완료되면 다음 stage로 갱신하는 로직
+        # 예시로, 퀴즈 단계가 끝날 때마다 cnt 값을 증가시킬 수 있음
+
+        # else:  # 이미 인증된 사용자인 경우
+            # print(f"📩 {self.user}의 메시지: {content_dict}")
+
+
         # print(f"🔄 이전 퀴즈 상태 복원: {self.room.cnt + 1}번 아티클 {self.quiz_stage}")
         # 현재 stage완료 시 다음 stage로 갱신하는 로직 구현하기
 
-        else: # 이미 인증된 사용자인 경우
-            print(f"📩 {self.user}의 메시지: {content_dict}")
-            # self.send_json(content_dict)  # 받은 메시지를 그대로 반환 (Echo/ onmessage)
             
-            # 메시지 내용 모델 객체로 저장
-            message_content = content_dict.get("message")
-            if message_content:
-                if self.room: 
-                    QuizroomMessage.objects.create(
-                        quizroom=self.room,
-                        message=message_content,
-                        is_gpt=False # 일단 사용자 메세지로 셋팅
-                    )
-                    # cnt 값 증가 및 저장
-                    self.room.cnt += 1
-                    self.room.save()
-                    print(f"퀴즈 수 업데이트: 현재 cnt 값은 {self.room.cnt}입니다.")
+            # 5. 메시지 내용 모델 객체로 저장
+            # message_content = content_dict.get("message")
+            # if message_content:
+                # if self.room: 
+                    # QuizroomMessage.objects.create(
+                        # quizroom=self.room,
+                        # message=message_content,
+                        # is_gpt=False # 일단 사용자 메세지로 셋팅
+                    # )
+                    # 6. cnt 값 증가 및 저장
+                    # self.room.cnt += 1
+                    # self.room.save()
+                    # print(f"퀴즈 수 업데이트: 현재 cnt 값은 {self.room.cnt}입니다.")
 
 
     # 채팅방 조회
