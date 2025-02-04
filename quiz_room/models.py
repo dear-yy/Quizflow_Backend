@@ -5,13 +5,13 @@ from django.contrib.auth.models import User
 class Quizroom(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="rooms") # 유저가 생성한 quizroom 접근 (user.rooms.all)
     now_stage = models.CharField(max_length=50, default="feedback")  # 메세지 복원 시 활용할 필드
-    keyword_list = models.JSONField(default=list, null=True, blank=True) # 아티클 생성에 활용
-    user_feedback_list = models.JSONField(default=list, null=True, blank=True) # 아티클 생성에 활용
+    keyword_list = models.JSONField(default=list) # 아티클 생성에 활용
+    user_feedback_list = models.JSONField(default=list) # 아티클 생성에 활용
     start_date = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
     update_date = models.DateTimeField(auto_now=True) # 갱신된 시간 (생성&수정)
     end_date = models.DateTimeField(null=True, blank=True) # cnt가 3이 될 경우 등록
     total_score = models.IntegerField(default=0)
-    cnt = models.IntegerField(default=0) # 1개의 아티클에 대한 퀴즈 사이클 완료 시 # quiz3 사용자가 답변을 제출한 순간 카운트 됨 # 아티클 조회 시 사용해도 될 듯 
+    cnt = models.IntegerField(default=0) # 1개의 아티클에 대한 퀴즈 사이클 완료 시 # quiz3 사용자가 답변을 제출한 순간 카운트 됨
 
 
 # QuizroomMessage 모델: Quizroom 모델에서 생성되는 모든(user&gpt) 메세지 기록
