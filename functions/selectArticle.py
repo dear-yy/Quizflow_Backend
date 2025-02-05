@@ -28,7 +28,7 @@ get_keywords_from_feedback
 
 def get_keywords_from_feedback(user_feedback:str, user_feedback_list:list, keyword_list:list) -> Tuple[List[str], str]:
     # 사용자 피드백 가공하여 병합한 내역 
-    add_user_feedback(user_feedback, user_feedback_list) 
+    # add_user_feedback(user_feedback, user_feedback_list) # 
 
     # 키워드 추출 (기사 검색어 설정)
     query = " ".join(keyword_list)  # 검색어 # user_feedback이 빈 경우, 대체로 이전 키워드 활용
@@ -42,12 +42,12 @@ def get_keywords_from_feedback(user_feedback:str, user_feedback_list:list, keywo
         return (None, None)  # 초기 쿼리 설정 필요
 
 
-# 사용자 피드백 (가공&병합) 내역 반환 
-def add_user_feedback(feedback:str, feedback_list:list):
-    if feedback.strip():  # 공백이 아닌 경우
-        feedback_list.append(feedback.strip()) # 문자열의 양옆에 있는 공백 제거해서 반환 
-    else:  # 공백인 경우
-        feedback_list.append("NOFEEDBACK") # "NOFEEDBACK" 반환
+# # 사용자 피드백 (가공&병합) 내역 반환 
+# def add_user_feedback(feedback:str, feedback_list:list):
+#     if feedback.strip():  # 공백이 아닌 경우
+#         feedback_list.append(feedback.strip()) # 문자열의 양옆에 있는 공백 제거해서 반환 
+#     else:  # 공백인 경우
+#         feedback_list.append("NOFEEDBACK") # "NOFEEDBACK" 반환
 
 
 # 키워드 추출
@@ -107,7 +107,7 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
                     },
                 ],
                 temperature=0,
-                max_tokens=50,
+                max_tokens=2048,
                 top_p=1, # 추출 단어의 관련성 제어
                 frequency_penalty=0, # 반복되는 단어를 제어(고려)
                 presence_penalty=0, # 새로운 단어를 제어(고려)
@@ -147,7 +147,7 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
 
 
 '''
-    selectArticle
+    select_article
         - Google_API
         - process_recommend_article
             - get_article_body
@@ -156,7 +156,7 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
         
 '''
 # 사용자 입력 
-def selectArticle(query:str, user_feedback_list:list) -> Dict:
+def select_article(query:str, user_feedback_list:list) -> Dict:
 
     num_results_per_site = 3    # 각 사이트당 결과 개수
     sites = [                   # 검색 가능 사이트 목록 
@@ -211,7 +211,7 @@ def selectArticle(query:str, user_feedback_list:list) -> Dict:
             # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
             if recommend_article_body and len(recommend_article_body.strip()) > 0:
                 print("추천 아티클 URL:", recommend_article_url)
-                print("추천 아티클 본문:\n", recommend_article_body[:100], "...")  # 본문 일부 출력
+                # print("추천 아티클 본문:\n", recommend_article_body[:100], "...")  # 본문 일부 출력
                 break  # 본문 추출 성공 시 루프 종료
     
     return  {
@@ -255,7 +255,7 @@ def Google_API(query:str, num_results_per_site:int, sites:list[str]) -> pd.DataF
                 
                 # API 응답 데이터 처리(요청 성공시 작동)
                 data = response.json() # API의 응답 데이터 -> JSON 형식
-                print(f"get data: {data}") # 디버깅용 # 구조 확인용 
+                # print(f"get data: {data}") # 디버깅용 # 구조 확인용 
                 
                 # 검색 결과 항목 존재 여부 확인
                 search_items = data.get("items") # 검색 결과 항목들 가져오기
@@ -379,7 +379,8 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             # 출력 형식
               - 답변은 딕셔너리 형태의 JSON 형식으로 반환하세요. 
               - 딕셔너리 key 이름은 "index"와 "reason"으로 설정하세요.
-              - "reason" 키의 value에 해당하는 문자열에서 작은따옴표가 등장한다면, 작은따옴표(')는 이스케이프문자 큰따옴표(\")로 표현하시오 
+              - "reason" key의 value에 해당하는 문자열 내부에서 작은따옴표(')와 큰따옴표(")가 등장하지 않도록 문자열을 구성하세요.
+              - "reason" key의 value는 간결한 1문장의 한국어로 출력하세요.
                 예:
                 ```
                     {{"index": "추천된 아티클의 고유 index", "reason": "왜 이 아티클이 적합한지 간단히 설명" }}

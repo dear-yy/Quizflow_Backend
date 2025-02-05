@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Quizroom, QuizroomMessage
+from .models import Quizroom, QuizroomMessage, Article
 
 # Register your models here.
 
@@ -21,3 +21,5 @@ class QuizroomAdmin(admin.ModelAdmin):
 
 admin.site.register(Quizroom, QuizroomAdmin)
 admin.site.register(QuizroomMessage)  # QuizroomMessage 객체만 보고 싶다면 등록하기
+
+admin.site.register(Article)

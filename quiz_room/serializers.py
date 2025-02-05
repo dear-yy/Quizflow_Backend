@@ -23,6 +23,13 @@ class ArticleSerializer(serializers.ModelSerializer):
         model = Article
         fields = ['quizroom', 'user', 'user_feedback', 'title', 'url', 'body', 'reason']
 
+# Article Create Serializer
+class ArticleCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Article
+        fields = ['user_feedback']
+
+
 # Quizroom Serializer
 class QuizroomCreateSerializer(serializers.ModelSerializer):
     class Meta:
