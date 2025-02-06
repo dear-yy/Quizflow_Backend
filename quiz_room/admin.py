@@ -3,7 +3,6 @@ from .models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  Des
 
 # Register your models here.
 
-
 # Article을 Quizroom의 인라인으로 설정
 class ArticleInline(admin.TabularInline):
     model = Article

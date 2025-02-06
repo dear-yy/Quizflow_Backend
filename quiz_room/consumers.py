@@ -68,7 +68,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             print(f'{self.now_stage}부터 시작합니다.')
 
             # 5. 퀴즈 진행(gpt 답변 단계에서 중단된 경우)
-            if self.now_stage in ["article", "quiz_1", "grading_1", "quiz_2", "grading_2", "quiz_3", "grading_3"]:
+            if self.now_stage in ["article", "quiz_1", "quiz_2", "quiz_3"]:
                 self.process_stage(None)
             
         elif type=="user":  # 이미 인증된 사용자인 경우
@@ -102,7 +102,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 
 
     def process_stage(self, message_content):
-        # stages = ["feedback", "article", "quiz_1", "user_ans_1", "grading_1", "quiz_2", "user_ans_2", "grading_2", "quiz_3", "user_ans_3", "grading_3"]
+        # stages = ["feedback", "article", "quiz_1", "user_ans_1", "quiz_2", "user_ans_2", "quiz_3", "user_ans_3"]
         fail = True # 처리 성공하면 False로 
         receive_message = None  # 사용자(클라이언트 -> 서버)
         send_message = None     # gpt (서버 -> 클라이언트) 
@@ -110,62 +110,44 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         if self.quizroom.cnt < 3: # 퀴즈 진행중
             if self.now_stage == "feedback":
                 fail, receive_message = self.process_feedback(message_content)
-                if fail:
+                if fail: # 처리 실패
                     send_message = receive_message
-                else:
+                else: # 처리 성공
                     self.now_stage = "article" # stage 상태 변경
             elif self.now_stage == "article":
                 fail, send_message = self.process_article()
-                if fail==False:
+                if fail==False: # 처리 성공
                     self.now_stage ="quiz_1" # stage 상태 변경
-                    self.send_json(send_message)
             # elif self.now_stage == "quiz_1":
             #     fail, send_message = self.self.process_quiz_1()
-            #     if fail==False:
+            #     if fail==False: # 처리 성공
             #         self.now_stage ="user_ans_1" # stage 상태 변경
-            #         self.send_json(send_message)
             # elif self.now_stage == "user_ans_1":
-            #     fail, receive_message = self.process_user_ans_1(message_content)
-            #     if fail:
-            #         send_message = receive_message
-            #     else:
-            #         self.now_stage ="grading_1" # stage 상태 변경
-            # elif self.now_stage == "grading_1":
-            #     fail, send_message = self.process_grading_1()
-            #     if fail==False:
+            #     # receive는 사용자 입력 답변 # send는 채점 결과 또는 실패 알림
+            #     fail, receive_message, send_message = self.process_user_ans_1(message_content) 
+            #     if fail==False: # 처리 성공 
             #         self.now_stage ="quiz_2" # stage 상태 변경
-            #         self.send_json(send_message)
             # elif self.now_stage == "quiz_2":
             #     fail, send_message = self.self.process_quiz_1()
-            #     if fail==False:
+            #     if fail==False: # 처리 성공
             #         self.now_stage ="user_ans_2" # stage 상태 변경
-            #         self.send_json(send_message)
             # elif self.now_stage == "user_ans_2":
-            #     fail, receive_message = self.process_user_ans_1(message_content)
-            #     if fail:
-            #         send_message = receive_message
-            #     else:
-            #         self.now_stage ="grading_2" # stage 상태 변경
-            # elif self.now_stage == "grading_2":
-            #     if fail==False:
+            #     fail, receive_message, send_message = self.process_user_ans_2(message_content)
+            #     if fail==False: # 처리 성공 
             #         self.now_stage ="quiz_3" # stage 상태 변경
-            #         self.send_json(send_message)
             # elif self.now_stage == "quiz_3":
             #     fail, send_message = self.self.process_quiz_1()
-            #     if fail==False:
+            #     if fail==False: # 처리 성공
             #         self.now_stage ="user_ans_3" # stage 상태 변경
-            #         self.send_json(send_message)
             # elif self.now_stage == "user_ans_3":
-            #     fail, receive_message = self.process_user_ans_1(message_content)
-            #     if fail:
-            #         send_message = receive_message
-            #     else:
-            #         self.now_stage ="grading_3" # stage 상태 변경
-            # elif self.now_stage == "grading_3":
-            #     fail, send_message = self.process_grading_1()
-            #     if fail==False:
+            #     fail, receive_message, send_message = self.process_user_ans_3(message_content)
+            #     if fail==False: # 처리 성공 
             #         self.now_stage ="feedback" # stage 상태 변경
-            #         self.send_json(send_message)
+            #         self.quizroom.cnt += 1
+
+            # 모델 객체 변경 사항 저장
+            self.quizroom.now_stage = self.now_stage
+            self.quizroom.save()
 
             # 처리 성공 여부 파악 
             if fail: # 처리 실패
@@ -177,20 +159,17 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                         is_gpt=True
                     )
             else: # 처리 성공
-                # 모델 객체 변경 사항 저장
-                self.quizroom.now_stage = self.now_stage
-                self.quizroom.save()
-
-                # 메세지 객체 생성 
-                    # stage 변환된 상태라, ["feedback", "user_ans_1", "user_ans_2", "user_ans_3"] 여기서 1개씩 밀림
-                if self.now_stage in ["article", "grading_1", "grading_2", "grading_3"]: # 사용자 (클라이언트 -> 서버)
+                # 사용자 메세지 객체 생성 
+                    # stage 변환된 상태라는 점 참고(["feedback", "user_ans_1",  "user_ans_2", "user_ans_3"]에서서 한 단계씩 밀린 상태)
+                if self.now_stage in ["article", "quiz_2", "quiz_3", "feedback"]: # 사용자 (클라이언트 -> 서버)
                     QuizroomMessage.objects.create(
                         quizroom=self.quizroom,
                         message=receive_message,
                         is_gpt=False
                     )
-                    self.process_stage(None) 
-                else: # gpt (서버 -> 클라이언트) 
+                # gpt(시스템) 메세지 객체 생성 
+                    # stage 변환된 상태라는 점 참고(마차낙지로 한 단계씩 밀린 상태)
+                if self.now_stage in ["quiz_1", "user_ans_1", "quiz_2", "user_ans_2", "quiz_3", "user_ans_3", "feedback"]: # gpt (서버 -> 클라이언트) 
                     self.send_json({"message": send_message})
                     QuizroomMessage.objects.create(
                         quizroom=self.quizroom,
@@ -198,8 +177,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                         is_gpt=True
                     )
 
-                # 서버에서 메세지 생성해야 하는 stage는  직접 호출
-                if self.now_stage in ["article", "quiz_1", "grading_1", "quiz_2", "grading_2", "quiz_3", "grading_3"]: # 
+                # 갱신된 stage 중 입력 메세지 필요없는 단계는 직접 호출
+                if self.now_stage in ["article", "quiz_1", "quiz_2", "quiz_3"]: 
                     self.process_stage(None)
 
         else: # 퀴즈 종료
@@ -277,28 +256,25 @@ class QuizroomConsumer(JsonWebsocketConsumer):
     # # 1번_객관식 
     # def process_quiz_1(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
     #     # 객관식 문제 생성 함수 호출(이전 구현 코드 2문제 동시에 생성하는 것 같은)
-    #     # 문제 저장
+    #     # 문제 모델 객체로 (생성)저장
     #     # (퀴즈 1번 문제 가져오기)
-    # def process_user_ans_1(self, message_content) -> Tuple[bool, str]: # 처리 실패 여부 반환
+    # def process_user_ans_1(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
     #     # 사용자 답변 형식 검증 
-    # def process_grading_1(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
     #     # 채점
     
     # # 2번_객관식 
     # def process_quiz_2(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
     #     # (퀴즈 2번 문제 가져오기)
-    # def process_user_ans_2(self, message_content) -> Tuple[bool, str]: # 처리 실패 여부 반환
+    # def process_user_ans_2(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
     #     # 사용자 답변 형식 검증
-    # def process_grading_2(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
     #     # 채점
          
     # # 3번_서술형 
     # def process_quiz_3(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
-
-    # def process_user_ans_3(self, message_content) -> Tuple[bool, str]: # 처리 실패 여부 반환
-
-    # def process_grading_3(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
-
+    #   # 서술형 문제 생성 함수 호출
+    # def process_user_ans_3(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
+    #   # 서술형 문제 답변 형식 검증 
+    #   # 서술형 채점
 
 
     def finish_quiz(self): # 테스트용(코드 수정 필요)
@@ -308,36 +284,6 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 
 
 
-'''
-    # 퀴즈 모델 만들어야 할 것 같다...!
-
-            # elif self.now_stage == ["user_ans_1", "user_ans_2"]:
-            
-            # elif self.now_stage == "user_ans_3":
-            #     print("사용자의 2번 문제 답변 처리 중...")
-            #     # 답변 형식 검증 -> null 이면 Fals 반환
-            #     # 서술형 퀴즈 모델에 변경 상태  DB 저장
-
-
-            # elif self.now_stage in ["quiz_1", "quiz_2"]:
-            #     if self.now_stage == "quiz_1": # 퀴즈 1,2 동시 생성 
-            #         # 객관식 문제 생성 함수 호출 
-            #         # (퀴즈 1번 문제 가져오기)
-            #     else:
-            #         # (퀴즈 2번 문제 가져오기)
-                
-            #     # gpt 메세지 객체 저장 (퀴즈 문제 반환)
-            # elif self.now_stage in ["grading_1", "grading_2"]:
-            #     # 채점 함수 호출-
-            # elif self.now_stage == "quiz_3":
-            #     # 서술형 문제 생성 함수 호출
-            # elif self.now_stage == "grading_3":
-            #     # 서술형 문제 채점 함수 호출
-
-=> 사용자 입력 인식 (사용자 입력 기다려야 함)/ 입력 자동 인식후, procees_stage(message_content) 호출됨 
--> process 직접 수행 (바로 다음 단계 실행시켜야 함) / 우리가 직접 process_stage(None) 호출해야 함
-[=> "feedback" -> "article" -> "quiz_1" => "user_ans_1" -> "grading_1" -> "quiz_2" => "user_ans_2" -> "grading_2" -> "quiz_3" => "user_ans_3" -> "grading_3"]
-'''
 
 ''' 
 [사용자 인증]
@@ -348,19 +294,23 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 '''
 
 '''
+=> 사용자 입력 인식 (사용자 입력 기다려야 함)/ 입력 자동 인식후, procees_stage(message_content) 호출됨 
+-> process 직접 수행 (바로 다음 단계 실행시켜야 함) / 우리가 직접 process_stage(None) 호출해야 함
+[=> "feedback" -> "article" -> "quiz_1" => "user_ans_1" -> "quiz_2" => "user_ans_2" -> "quiz_3" => "user_ans_3" ]
+
 [now_stage 흐름]
 1. 사용자(feedback) > user_feedback 메세지 
 2. gpt(article) > recommend Article 메세지 반환 
 
 3. gpt(quiz_1) > 객관식 문제1 메세지 반환 
 4. 사용자(user_ans_1) > 객관식 문제1 답 메세지 반환 
-5. gpt(grading_1) > 채점 
+5. gpt(user_ans_1) > 채점 
 
 6. gpt(quiz_2) > 객관식 문제2 메세지 반환 
 7. 사용자(user_ans_2) > 객관식 문제2 답 메세지 반환 
-8. gpt(grading_2) > 채점 
+8. gpt(user_ans_2) > 채점 
 
 9.  gpt(quiz_3) > 서술형 문제 메세지 반환 
 10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
-11. gpt(grading_3) > 채점
+11. gpt(user_ans_3) > 채점
 '''

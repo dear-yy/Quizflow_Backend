@@ -366,9 +366,10 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
     while True:  # RateLimitError 발생 시 재시도하도록
         try:
             # Open API 호출
+                # 토큰 초과 에러 발생해서, title 정보는 제외함!
             system_prompt = f"""
             # 지시문
-                - 당신은 사용자의 피드백과 아티클의 제목 및 설명을 기반으로 사용자에게 적합한 아티클을 추천하는 어플리케이션의 역할을 한다.
+                - 당신은 사용자의 피드백과 아티클의 설명을 기반으로 사용자에게 적합한 아티클을 추천하는 어플리케이션의 역할을 한다.
             # 추천 조건
                 1. 최신 피드백(리스트에서 인덱스가 높은 순서)을 우선적으로 고려하세요.
                 2. 최신 피드백이 다루는 주제와 가장 관련이 있는 아티클을 선택하세요.
@@ -399,11 +400,10 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
                             f"사용자 피드백: {user_feedback_list}\n\n"
                             "아티클 목록 (index 포함):\n"
                             + "\n".join(
-                                f"{i}. [Index: {idx}] 제목: {title}\n   설명: {description}\n  "
-                                for i, (idx, title, description) in enumerate(
+                                f"{i}. [Index: {idx}]  설명: {description}\n  "
+                                for i, (idx, description) in enumerate(
                                     zip(
                                         article_indices,
-                                        article_titles,
                                         article_descriptions,
                                     )
                                 )
