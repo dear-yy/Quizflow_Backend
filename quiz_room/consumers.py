@@ -6,35 +6,10 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from typing import Tuple, Dict
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
-from quiz_room.models import Quizroom, QuizroomMessage, Article
-from .serializers import ArticleCreateSerializer
+from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz
 from functions.selectArticle import get_keywords_from_feedback, select_article
 import json
 
-''' 
-# 1. 토큰 받아오기 
-# 2. 토큰과 연결된 사용자 반환 
-# 3. 해당 사용자에게 해당 id의 방 존재 여부 파악 
-# 4. 방 반환
-'''
-
-'''
-[now_stage 흐름]
-1. 사용자(feedback) > user_feedback 메세지 
-2. gpt(article) > recommend Article 메세지 반환 
-
-3. gpt(quiz_1) > 객관식 문제1 메세지 반환 
-4. 사용자(user_ans_1) > 객관식 문제1 답 메세지 반환 
-5. gpt(grading_1) > 채점 
-
-6. gpt(quiz_2) > 객관식 문제2 메세지 반환 
-7. 사용자(user_ans_2) > 객관식 문제2 답 메세지 반환 
-8. gpt(grading_2) > 채점 
-
-9.  gpt(quiz_3) > 서술형 문제 메세지 반환 
-10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
-11. gpt(grading_3) > 채점
-'''
 
 # 서버측 웹소켓 연결 처리 
 class QuizroomConsumer(JsonWebsocketConsumer):
@@ -364,3 +339,28 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 [=> "feedback" -> "article" -> "quiz_1" => "user_ans_1" -> "grading_1" -> "quiz_2" => "user_ans_2" -> "grading_2" -> "quiz_3" => "user_ans_3" -> "grading_3"]
 '''
 
+''' 
+[사용자 인증]
+# 1. 토큰 받아오기 
+# 2. 토큰과 연결된 사용자 반환 
+# 3. 해당 사용자에게 해당 id의 방 존재 여부 파악 
+# 4. 방 반환
+'''
+
+'''
+[now_stage 흐름]
+1. 사용자(feedback) > user_feedback 메세지 
+2. gpt(article) > recommend Article 메세지 반환 
+
+3. gpt(quiz_1) > 객관식 문제1 메세지 반환 
+4. 사용자(user_ans_1) > 객관식 문제1 답 메세지 반환 
+5. gpt(grading_1) > 채점 
+
+6. gpt(quiz_2) > 객관식 문제2 메세지 반환 
+7. 사용자(user_ans_2) > 객관식 문제2 답 메세지 반환 
+8. gpt(grading_2) > 채점 
+
+9.  gpt(quiz_3) > 서술형 문제 메세지 반환 
+10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
+11. gpt(grading_3) > 채점
+'''

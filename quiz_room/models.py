@@ -17,7 +17,6 @@ class Quizroom(models.Model):
 # QuizroomMessage 모델: Quizroom 모델에서 생성되는 모든(user&gpt) 메세지 기록
 class QuizroomMessage(models.Model):
     quizroom = models.ForeignKey(Quizroom, on_delete=models.CASCADE, related_name="messages") # quizroom에 속한 메세지 접근(quizroom.messages.all)
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_message") # 필요 없을 것 같음(일단)
     message = models.TextField()
     is_gpt = models.BooleanField()
     timestamp = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
@@ -31,3 +30,17 @@ class Article(models.Model):
     url = models.URLField()
     body = models.TextField()
     reason = models.TextField()
+
+
+
+class MultipleChoiceQuiz(models.Model):
+    article =  models.ForeignKey(Article, on_delete=models.CASCADE, related_name="multiple_choice_quiz") # quizroom에 속한 아티클들 접근(quizroom.multiple_choice_quiz.all)
+    quiz_1 = models.TextField()
+    quiz_1_ans = models.IntegerField()
+    quiz_2 = models.TextField()
+    quiz_2_ans = models.IntegerField()
+
+class DescriptiveQuiz(models.Model):
+    article =  models.ForeignKey(Article, on_delete=models.CASCADE, related_name="descriptive_quiz") # quizroom에 속한 아티클들 접근(quizroom.descriptive_quiz.all)
+    quiz_3 = models.TextField()
+    quiz_3_ans = models.TextField()
