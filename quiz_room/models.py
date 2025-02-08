@@ -30,17 +30,17 @@ class Article(models.Model):
     url = models.URLField()
     body = models.TextField()
     reason = models.TextField()
-
+    timestamp = models.DateTimeField(auto_now_add=True)  # 생성될 때 자동으로 시간 저장
 
 
 class MultipleChoiceQuiz(models.Model):
-    article =  models.ForeignKey(Article, on_delete=models.CASCADE, related_name="multiple_choice_quiz") # quizroom에 속한 아티클들 접근(quizroom.multiple_choice_quiz.all)
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name="multiple_choice_quiz")  # 1:1 관계
     quiz_1 = models.TextField()
     quiz_1_ans = models.IntegerField()
-    quiz_2 = models.TextField()
-    quiz_2_ans = models.IntegerField()
+    quiz_2 = models.TextField(null=True, blank=True)
+    quiz_2_ans = models.IntegerField(null=True, blank=True)
 
 class DescriptiveQuiz(models.Model):
-    article =  models.ForeignKey(Article, on_delete=models.CASCADE, related_name="descriptive_quiz") # quizroom에 속한 아티클들 접근(quizroom.descriptive_quiz.all)
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name="descriptive_quiz")  # 1:1 관계
     quiz_3 = models.TextField()
     quiz_3_ans = models.TextField()

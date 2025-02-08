@@ -42,14 +42,6 @@ def get_keywords_from_feedback(user_feedback:str, user_feedback_list:list, keywo
         return (None, None)  # 초기 쿼리 설정 필요
 
 
-# # 사용자 피드백 (가공&병합) 내역 반환 
-# def add_user_feedback(feedback:str, feedback_list:list):
-#     if feedback.strip():  # 공백이 아닌 경우
-#         feedback_list.append(feedback.strip()) # 문자열의 양옆에 있는 공백 제거해서 반환 
-#     else:  # 공백인 경우
-#         feedback_list.append("NOFEEDBACK") # "NOFEEDBACK" 반환
-
-
 # 키워드 추출
 def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> List:
     """
@@ -378,7 +370,7 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
                 5. 지식적인 설명 또는 학습에 도움을 줄 수 있는 내용이 포함되어야 한다.
 
             # 출력 형식
-              - 답변은 딕셔너리 형태의 JSON 형식으로 반환하세요. 
+              - 답변은 딕셔너리 형태로 반환하세요. 
               - 딕셔너리 key 이름은 "index"와 "reason"으로 설정하세요.
               - "reason" key의 value에 해당하는 문자열 내부에서 작은따옴표(')와 큰따옴표(")가 등장하지 않도록 문자열을 구성하세요.
               - "reason" key의 value는 2문장 정도의 한국어로 출력하세요.
