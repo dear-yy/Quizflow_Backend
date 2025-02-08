@@ -156,7 +156,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             #     if fail==False: # 처리 성공 
             #         self.now_stage ="feedback" # stage 상태 변경
             #         self.quizroom.cnt += 1
-            #     self.article = None # 새로운 아티클로 갱신해야 하므로
+            #         self.article = None # 새로운 아티클로 갱신해야 하므로
 
             # 모델 객체 변경 사항 저장
             self.quizroom.now_stage = self.now_stage
