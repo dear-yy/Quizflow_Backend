@@ -1,8 +1,12 @@
 # 윤서 -> 아티클 body 요약 구현 
 import openai
 import time
-from quiz_room.models import Article  # Article 모델 import
 
+'''
+summarize_article
+    - split_text
+    - summarize_chunk
+'''
 def split_text(text, max_chunk_size=3000):
     """
     긴 텍스트를 max_chunk_size 크기로 분할합니다.
@@ -74,18 +78,3 @@ def summarize_article(article_text):
             time.sleep(40)
         except Exception as e:
             return f"Error: {e}"
-
-def update_article_summary(article_id):
-    """
-    주어진 article_id를 가진 Article 객체의 body 필드를 요약하여 업데이트하는 함수
-    """
-    try:
-        article = Article.objects.get(id=article_id)
-        summary = summarize_article(article.body)
-        article.body = summary  # 기존 body 필드를 요약된 내용으로 업데이트
-        article.save()
-        print(f"Article {article_id} 요약 완료.")
-    except Article.DoesNotExist:
-        print(f"Article {article_id}을 찾을 수 없습니다.")
-    except Exception as e:
-        print(f"오류 발생: {e}")

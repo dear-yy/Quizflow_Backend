@@ -381,7 +381,7 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
               - 답변은 딕셔너리 형태의 JSON 형식으로 반환하세요. 
               - 딕셔너리 key 이름은 "index"와 "reason"으로 설정하세요.
               - "reason" key의 value에 해당하는 문자열 내부에서 작은따옴표(')와 큰따옴표(")가 등장하지 않도록 문자열을 구성하세요.
-              - "reason" key의 value는 간결한 1문장의 한국어로 출력하세요.
+              - "reason" key의 value는 2문장 정도의 한국어로 출력하세요.
                 예:
                 ```
                     {{"index": "추천된 아티클의 고유 index", "reason": "왜 이 아티클이 적합한지 간단히 설명" }}

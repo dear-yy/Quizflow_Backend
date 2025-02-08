@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz
 from functions.selectArticle import get_keywords_from_feedback, select_article
+from functions.summarization import summarize_article
 import json
 
 
@@ -118,10 +119,11 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 fail, send_message = self.process_article()
                 if fail==False: # 처리 성공
                     self.now_stage ="quiz_1" # stage 상태 변경
-            # elif self.now_stage == "quiz_1":
-            #     fail, send_message = self.self.process_quiz_1()
-            #     if fail==False: # 처리 성공
-            #         self.now_stage ="user_ans_1" # stage 상태 변경
+            elif self.now_stage == "quiz_1":
+                print("퀴즈 시작~")
+                fail, send_message = self.self.process_quiz_1()
+                if fail==False: # 처리 성공
+                    self.now_stage ="user_ans_1" # stage 상태 변경
             # elif self.now_stage == "user_ans_1":
             #     # receive는 사용자 입력 답변 # send는 채점 결과 또는 실패 알림
             #     fail, receive_message, send_message = self.process_user_ans_1(message_content) 
@@ -223,7 +225,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         recommended_article = select_article(query, user_feedback_list) # 현재 사용자 요청 # 누적 사용자 요청 내역
         retry_extracted_keywords = recommended_article["retry_extracted_keywords"]
 
-        # 아티클 본문 요약(body 요약해서 DB에 저장)!!!
+        # 아티클 본문 요약
+        recommended_article['body'] = summarize_article(recommended_article['body'])
 
         # 아티클 생성 및 Room 연결
         article = Article.objects.create(
