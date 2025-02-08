@@ -17,7 +17,7 @@ class Quizroom(models.Model):
 # QuizroomMessage 모델: Quizroom 모델에서 생성되는 모든(user&gpt) 메세지 기록
 class QuizroomMessage(models.Model):
     quizroom = models.ForeignKey(Quizroom, on_delete=models.CASCADE, related_name="messages") # quizroom에 속한 메세지 접근(quizroom.messages.all)
-    message = models.TextField()
+    message = models.TextField(null=True, blank=True)
     is_gpt = models.BooleanField()
     timestamp = models.DateTimeField(auto_now_add=True) # 처음 생성될 때만 
 
