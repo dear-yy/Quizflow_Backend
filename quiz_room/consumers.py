@@ -10,7 +10,7 @@ from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQ
 from functions.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
 from functions.summarization import summarize_article                                           # 요약 기능 
 from functions.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
-# from functions.descriptiveQuiz import  
+from functions.descriptiveQuiz import generate_descriptive_quiz_with_check, check_descriptive_answer # 서술형 퀴즈
 
 import json
 
