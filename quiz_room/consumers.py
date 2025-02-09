@@ -5,13 +5,13 @@ from channels.generic.websocket import JsonWebsocketConsumer
 # import openai
 from typing import Tuple
 from rest_framework.authtoken.models import Token
+from django.utils.timezone import now
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz
 from functions.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
 from functions.summarization import summarize_article                                           # 요약 기능 
 from functions.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
 from functions.descriptiveQuiz import generate_descriptive_quiz, evaluate_descriptive_answer  # 서술형 퀴즈
-
 import json
 
 
@@ -63,11 +63,13 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 print(f"[{self.user}의 방]") # 해당 방으로 연결
 
             # 3. 퀴즈 진행 상태 검사, cnt 값 검증
-            if self.quizroom.cnt >= 3:
+            if self.quizroom.cnt > 3:
                 print("완료된 퀴즈룸 입니다. 연결을 종료합니다.")
-                self.send_json({"error": "최대 퀴즈 수를 초과했습니다." })
+                self.send_json({"fail": "최대 퀴즈 수를 초과했습니다." })
                 self.close()
                 return
+            elif self.quizroom.cnt == 3:
+                self.finish_quiz()
             
             # 4. 퀴즈 진행 상태&아티클 복원
             self.now_stage = self.quizroom.now_stage
@@ -82,6 +84,16 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             # 5. 퀴즈 진행(gpt 답변 단계에서 중단된 경우)
             if self.now_stage in ["article", "quiz_1", "quiz_2", "quiz_3"]:
                 self.process_stage(None)
+
+            # 6. 퀴즈룸 최초 실행인 경우
+            if self.now_stage in ["feedback"] and self.quizroom.cnt == 0:
+                send_message =  f"{self.user}님 안녕하세요!\n🔍 어떤 주제에 대해 학습하고 싶으신가요? 입력해주시면 관련된 퀴즈로 안내드릴게요!\n" # 사용자 프로필 명으로 변경하기~!
+                self.send_json({"message": send_message})
+                QuizroomMessage.objects.create(
+                    quizroom=self.quizroom,
+                    message=send_message,
+                    is_gpt=True
+                )
             
         elif type=="user":  # 이미 인증된 사용자인 경우
             print(f"📩 {self.user}의 메시지: {content_dict}")
@@ -151,11 +163,11 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 if fail==False: # 처리 성공
                     self.now_stage ="user_ans_3" # stage 상태 변경
             elif self.now_stage == "user_ans_3":
-                 fail, receive_message, send_message = self.process_user_ans_3(message_content)
-                 if fail==False: # 처리 성공 
-                     self.now_stage ="feedback" # stage 상태 변경
-                     self.quizroom.cnt += 1
-                     self.article = None # 새로운 아티클로 갱신해야 하므로
+                fail, receive_message, send_message = self.process_user_ans_3(message_content)
+                if fail==False: # 처리 성공 
+                    self.now_stage ="feedback" # stage 상태 변경
+                    self.quizroom.cnt += 1
+                    self.article = None # 새로운 아티클로 갱신해야 하므로
 
             # 모델 객체 변경 사항 저장
             self.quizroom.now_stage = self.now_stage
@@ -197,31 +209,45 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                         is_gpt=True
                     )
 
+                    # 사용자 피드백 요청 메세지 
+                    if self.now_stage in ["feedback"] and self.quizroom.cnt < 3: # stage 갱신된 상태임
+                        send_message = "🔍 해당 아티클을 읽고 더 궁금한거나, 이해하기 어려운 부분에 대해 입력해주세요.\n(입력 내용은 다음 아티클 출제에 반영됩니다.)\n"
+                        self.send_json({"message": send_message})
+                        QuizroomMessage.objects.create(
+                            quizroom=self.quizroom,
+                            message=send_message,
+                            is_gpt=True
+                        )
+                    elif self.now_stage in ["feedback"] and self.quizroom.cnt == 3: # 퀴즈 종료(퀴즈 수행중)
+                        self.finish_quiz()
+
                 # 갱신된 stage 중 입력 메세지 필요없는 단계는 직접 호출
                 if self.now_stage in ["article", "quiz_1", "quiz_2", "quiz_3"]: 
                     self.process_stage(None)
-
-        else: # 퀴즈 종료
+        else: # 퀴즈 종료(퀴즈룸 접속시)
             self.finish_quiz()
 
 
     def process_feedback(self, message_content) -> Tuple[bool, str]: # 처리 실패 여부 반환
-        print("사용자의 feedback 처리 중...")
-            
         # 사용자 메세지 형식 검증
         if message_content=="":
             send_message = "입력값이 존재하지 않습니다. 다시 입력해주세요." 
             return True, send_message
                 
         # 모델 수정&저장
-        recieve_message = message_content
-        self.quizroom.user_feedback_list.append(recieve_message)    # 기존 리스트에 새 요소 추가
+        self.quizroom.user_feedback_list.append(message_content)    # 기존 리스트에 새 요소 추가
         self.quizroom.save()    # Quizroom 모델 객체 변경 상태 DB 저장
-        return False, recieve_message
+        return False, message_content
     
 
     def process_article(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
-        print("article을 추천 중입니다.")
+        self.send_json({"message": "관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"})
+        QuizroomMessage.objects.create(
+            quizroom=self.quizroom,
+            message="관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!",
+            is_gpt=True
+        )
+        
         # 초기화 
         send_message = "아티클 추천에 실패하였습니다." 
      
@@ -334,25 +360,49 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         )
         if quiz.id: # 정상 생성됨
             quiz.save()
-            return (False, f"1️⃣\n{quiz_3}\n ** 답변을 입력해주세요")
+            return (False, f"3️⃣\n{quiz_3}\n ** 2문장 이내로 답변을 입력해주세요")
         else:
             return (True, "3번 서술형 퀴즈 생성을 실패하였습니다.")
+        
     def process_user_ans_3(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
-        quiz_3_ans = self.article.descriptive_quiz.quiz_3_ans
-        fail, send_message, score = evaluate_descriptive_answer(message_content, quiz_3_ans) 
+        descriptive_quiz = self.article.descriptive_quiz
+        fail, criteria, feedback, score = evaluate_descriptive_answer(message_content, descriptive_quiz.quiz_3, descriptive_quiz.quiz_3_ans) 
         # 점수 반영 로직 추가
         if fail: # 채점 실패(json 변환 오류 문제)
+            send_message = "채점 과정에서 에러가 발생하였습니다."
             return True, message_content, send_message
         else: # 채점 성공
+            criteria_str = json.dumps(criteria, ensure_ascii=False)
+            feedback_str = json.dumps(feedback, ensure_ascii=False)
+            send_message = criteria_str + "\n" + feedback_str
             self.quizroom.total_score += score # quizroom에 점수 반영
             return False, message_content, send_message
 
 
-    def finish_quiz(self): # 테스트용(코드 수정 필요)
-        """퀴즈 종료 처리"""
-        print("🎉 수고하셨습니다. 퀴즈를 모두 마치셨습니다. 🎉") 
+    def finish_quiz(self): # 퀴즈룸 종료 처리
+        if self.quizroom.cnt == 3:
+            # 총점 메시지 
+            send_message = f"📊 최종 점수: {self.quizroom.total_score}/30"
+            self.send_json({"message": send_message})
+            QuizroomMessage.objects.create(
+                quizroom=self.quizroom,
+                message=send_message,
+                is_gpt=True
+            )
 
-
+            # 종료 메세지
+            send_message = "🎉 수고하셨습니다. 퀴즈를 모두 마치셨습니다. 🎉"
+            self.send_json({"message": send_message})
+            QuizroomMessage.objects.create(
+                quizroom=self.quizroom,
+                message=send_message,
+                is_gpt=True
+            )
+            
+            self.quizroom.cnt += 1
+            self.quizroom.end_date = now()
+            self.quizroom.save()  # 변경 사항을 DB에 저장
+            self.close() # 웹소켓 연결 종료
 
 
 ''' 
@@ -384,3 +434,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
 11. gpt(user_ans_3) > 채점
 '''
+"관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"
+
+# cnt 0일 경우  ->/ 🎉퀴즈를 시작합니다! 최선을 다해보세요!✨
+                    

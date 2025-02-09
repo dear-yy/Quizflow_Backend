@@ -79,10 +79,14 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
 
 
 
-def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, str, str]:
+def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, dict, dict, int]:
     """
     GPT를 사용하여 사용자 답변을 평가합니다.
     """
+    # 오류 발생 여부
+    fail = False
+    evaluation_result = None
+    
     prompt_evaluation = f"""
     당신은 '서술형 퀴즈 평가자'라는 역할을 맡게 됩니다. 서술형 퀴즈 평가자는 주어진 평가기준을 기반으로 사용자의 답변을 평가하여 점수를 도출하고 사용자 답변에 대한 피드백을 제공합니다.
     즉, 당신의 목표는 모범 답안 기반 사용자의 작성 답안을 정확하게 평가하고 사용자 답변에 대해 이해도와 개선점이라는 피드백을 생성하는 것입니다.
@@ -103,7 +107,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, st
 
     ##최종 출력 형식:
     {{
-      "total_score": X,
+      "total_score": 0,
       "criteria": {{
         "content_inclusion": "핵심 내용 포함에 대한 피드백",
         "keyword_usage": "키워드 사용에 대한 피드백",
@@ -132,14 +136,16 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, st
             )
 
             # GPT 응답 추출
-            evaluation = response["choices"][0]["message"]["content"].strip()
+            evaluation_result = response["choices"][0]["message"]["content"].strip()
 
             # BOM 제거 및 UTF-8 처리
-            evaluation = evaluation.lstrip('\ufeff')
-            evaluation = evaluation.encode('utf-8').decode('utf-8')
+            evaluation_result = evaluation_result.lstrip('\ufeff')
+            evaluation_result = evaluation_result.encode('utf-8').decode('utf-8')
 
             # JSON 변환
-            return json.loads(evaluation)
+            evaluation_result = json.loads(evaluation_result)
+            # 결과 반환
+            return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
 
         except openai.error.RateLimitError:  
             print("Rate limit reached. Retrying in 40 seconds...")
@@ -147,16 +153,20 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, st
 
         except UnicodeDecodeError as e:
             print(f"유니코드 디코딩 오류 발생: {e}")
+            fail = True
             break  # 유니코드 디코딩 오류 발생 시 루프 종료
 
         except json.JSONDecodeError as e:
             print(f"JSON 디코딩 오류 발생: {e}")
-            print("GPT 응답:", evaluation)  # 응답 내용 확인
+            print("GPT 응답:", evaluation_result)  # 응답 내용 확인
+            fail = True
             break  # JSON 디코딩 오류 발생 시 루프 종료
+    
+    if not isinstance(evaluation_result["total_score"], int): # 정수가 아니면
+        fail = True
 
-
-    # 오류 발생 시 기본값 반환
-    return {
+    # 처리 실패시 
+    evaluation_result = {
         "total_score": 0,
         "criteria": {
             "content_inclusion": "JSON 변환 오류로 평가 실패",
@@ -170,3 +180,4 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, st
             "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
         }
     }
+    return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
