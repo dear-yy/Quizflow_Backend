@@ -4,6 +4,7 @@ import openai
 import json  
 import time
 from django.conf import settings
+from typing import Tuple
 
 # Django 프로젝트 절대 경로로 추가
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,7 +18,7 @@ generate_descriptive_quiz
 evaluate_descriptive_answer
 '''
 
-def generate_descriptive_quiz(article_summary):
+def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
 
     while True:  # RateLimitError가 발생하면 재시도
         try:
@@ -34,7 +35,7 @@ def generate_descriptive_quiz(article_summary):
             퀴즈:
             """
 
-            # Open API 호출출
+            # Open API 호출
             response_quiz = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -78,7 +79,7 @@ def generate_descriptive_quiz(article_summary):
 
 
 
-def evaluate_descriptive_answer(user_answer, quiz, model_answer):
+def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[int, str, str]:
     """
     GPT를 사용하여 사용자 답변을 평가합니다.
     """
