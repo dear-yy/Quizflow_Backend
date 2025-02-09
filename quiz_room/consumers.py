@@ -435,6 +435,3 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 11. gpt(user_ans_3) > 채점
 '''
 "관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"
-
-# cnt 0일 경우  ->/ 🎉퀴즈를 시작합니다! 최선을 다해보세요!✨
-                    
