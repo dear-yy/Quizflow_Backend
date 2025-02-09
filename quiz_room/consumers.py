@@ -10,7 +10,7 @@ from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQ
 from functions.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
 from functions.summarization import summarize_article                                           # 요약 기능 
 from functions.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
-from functions.descriptiveQuiz import generate_descriptive_quiz_with_check, check_descriptive_answer # 서술형 퀴즈
+from functions.descriptiveQuiz import generate_descriptive_quiz, evaluate_descriptive_answer  # 서술형 퀴즈
 
 import json
 
@@ -146,17 +146,16 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 fail, receive_message, send_message = self.process_user_ans_2(message_content)
                 if fail==False: # 처리 성공 
                     self.now_stage ="quiz_3" # stage 상태 변경
-                    print("아직 구현 중...")
-            # elif self.now_stage == "quiz_3":
-            #     fail, send_message = self.process_quiz_3()
-            #     if fail==False: # 처리 성공
-            #         self.now_stage ="user_ans_3" # stage 상태 변경
-            # elif self.now_stage == "user_ans_3":
-            #     fail, receive_message, send_message = self.process_user_ans_3(message_content)
-            #     if fail==False: # 처리 성공 
-            #         self.now_stage ="feedback" # stage 상태 변경
-            #         self.quizroom.cnt += 1
-            #         self.article = None # 새로운 아티클로 갱신해야 하므로
+            elif self.now_stage == "quiz_3":
+                fail, send_message = self.process_quiz_3()
+                if fail==False: # 처리 성공
+                    self.now_stage ="user_ans_3" # stage 상태 변경
+            elif self.now_stage == "user_ans_3":
+                 fail, receive_message, send_message = self.process_user_ans_3(message_content)
+                 if fail==False: # 처리 성공 
+                     self.now_stage ="feedback" # stage 상태 변경
+                     self.quizroom.cnt += 1
+                     self.article = None # 새로운 아티클로 갱신해야 하므로
 
             # 모델 객체 변경 사항 저장
             self.quizroom.now_stage = self.now_stage
@@ -326,11 +325,27 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return False, message_content, send_message
          
     # # 3번_서술형 
-    # def process_quiz_3(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
-    #   # 서술형 문제 생성 함수 호출
-    # def process_user_ans_3(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
-    #   # 서술형 문제 답변 형식 검증 
-    #   # 서술형 채점
+    def process_quiz_3(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
+        quiz_3, ans_3 = generate_descriptive_quiz(self.article.body)
+        quiz = DescriptiveQuiz.objects.create(
+            article=self.article,
+            quiz_3=quiz_3,
+            quiz_3_ans=ans_3
+        )
+        if quiz.id: # 정상 생성됨
+            quiz.save()
+            return (False, f"1️⃣\n{quiz_3}\n ** 답변을 입력해주세요")
+        else:
+            return (True, "3번 서술형 퀴즈 생성을 실패하였습니다.")
+    def process_user_ans_3(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
+        quiz_3_ans = self.article.descriptive_quiz.quiz_3_ans
+        fail, send_message, score = evaluate_descriptive_answer(message_content, quiz_3_ans) 
+        # 점수 반영 로직 추가
+        if fail: # 채점 실패(json 변환 오류 문제)
+            return True, message_content, send_message
+        else: # 채점 성공
+            self.quizroom.total_score += score # quizroom에 점수 반영
+            return False, message_content, send_message
 
 
     def finish_quiz(self): # 테스트용(코드 수정 필요)
