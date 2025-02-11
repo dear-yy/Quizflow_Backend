@@ -7,7 +7,7 @@ from typing import Tuple
 from rest_framework.authtoken.models import Token
 from django.utils.timezone import now
 from django.contrib.auth.models import User
-from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz
+from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz, UserArticleHistory
 from functions.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
 from functions.summarization import summarize_article                                           # 요약 기능 
 from functions.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
@@ -96,7 +96,6 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 )
             
         elif type=="user":  # 이미 인증된 사용자인 경우
-            print(f"📩 {self.user}의 메시지: {content_dict}")
             message_content = content_dict.get("message")
             
             # 5. 메세지 처리
@@ -266,7 +265,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return True, send_message
                     
         # 아티클 추천
-        recommended_article = select_article(query, user_feedback_list) # 현재 사용자 요청 # 누적 사용자 요청 내역
+        recommended_article = select_article(self.user, query, user_feedback_list) # 현재 사용자 요청 # 누적 사용자 요청 내역
         retry_extracted_keywords = recommended_article["retry_extracted_keywords"]
 
         # 아티클 본문 요약
@@ -280,8 +279,19 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             title=recommended_article['title'],
             body=recommended_article['body'],
             url=recommended_article['url'],
-            reason=recommended_article['reason'], # myquiz프로젝트에서
+            reason=recommended_article['reason'],
         )
+
+
+        # 아티클 중복 방지를 위한 사용자 아티클 정보 저장
+        UserArticleHistory.objects.create(user=self.user, article=self.article)
+
+        # 최근 100개만 유지 (초과 시 가장 오래된 기록 삭제)
+        history_count = UserArticleHistory.objects.filter(user=self.user).count()
+        if history_count > 100: 
+            oldest_entry = UserArticleHistory.objects.filter(user=self.user).order_by("timestamp").first()
+            if oldest_entry:
+                oldest_entry.delete()
 
         # 연결된 Room 객체 수정된 정보 저장
         if  retry_extracted_keywords is not None: # 키워드 추출이 재시도된 경우 
@@ -434,4 +444,3 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 10. 사용자(user_ans_3) > 서술형 문제 답 메세지 반환 
 11. gpt(user_ans_3) > 채점
 '''
-"관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"

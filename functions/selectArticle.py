@@ -8,7 +8,8 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from typing import List, Dict, Tuple
 from django.conf import settings
-
+from django.contrib.auth.models import User
+from quiz_room.models import Article
 # Django 프로젝트 절대 경로로 추가
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) # __file__ : 현재 경로
 # DJANGO_SETTINGS_MODULE 환경 변수를 설정하여 Django 설정을 로드합니다.
@@ -148,7 +149,7 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
         
 '''
 # 사용자 입력 
-def select_article(query:str, user_feedback_list:list) -> Dict:
+def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
 
     num_results_per_site = 3    # 각 사이트당 결과 개수
     sites = [                   # 검색 가능 사이트 목록 
@@ -164,7 +165,7 @@ def select_article(query:str, user_feedback_list:list) -> Dict:
     ]
 
     # 후보 기사 목록 서치 (추출된 키워드 기반 쿼리로)
-    df = Google_API(query, num_results_per_site, sites)  # query로 탐색된 기사 목록
+    df = Google_API(user, query, num_results_per_site, sites)  # query로 탐색된 기사 목록
     time.sleep(30)  # 생성 토큰 제한 에러 예방
 
     
@@ -187,7 +188,7 @@ def select_article(query:str, user_feedback_list:list) -> Dict:
                     query = None
 
                 # Google API로 새로운 검색 수행
-                df = Google_API(query, num_results_per_site=5, sites=sites)
+                df = Google_API(user, query, num_results_per_site=5, sites=sites)
                 if df.empty: # 새로운 검색어로도 결과를 차지 못함
                     continue  # 검색 실패 시 다시 반복
             else: # 새로운 키워드 생성 실패. 
@@ -203,7 +204,6 @@ def select_article(query:str, user_feedback_list:list) -> Dict:
             # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
             if recommend_article_body and len(recommend_article_body.strip()) > 0:
                 print("추천 아티클 URL:", recommend_article_url)
-                # print("추천 아티클 본문:\n", recommend_article_body[:100], "...")  # 본문 일부 출력
                 break  # 본문 추출 성공 시 루프 종료
     
     return  {
@@ -219,10 +219,14 @@ def select_article(query:str, user_feedback_list:list) -> Dict:
 
 
 
-
-def Google_API(query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 데이터 구조 (행&열 구성)
+# 후보 기사들 ("Title", "Description", "Link", "Domain") 형식의 데이터프레임으로
+def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 데이터 구조 (행&열 구성)
     # 각 사이트의 결과 모음 리스트(추천 기사 후보 리스트)
     df_google_list = [] # 요소는 dataframe으로 한 기사의 정보를 담고 있음
+
+    # 사용자의 과거 아티클 정보 # 유저 정보 파라미터 필요
+    past_articles = set(Article.objects.filter(user=user).order_by('-timestamp')[:100].values_list('url', flat=True)) # user의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
+
 
     # 사이트 별 쿼리로 후보 기사 조회
     for site in sites: 
@@ -265,6 +269,10 @@ def Google_API(query:str, num_results_per_site:int, sites:list[str]) -> pd.DataF
                     link = search_item.get("link")
                     title = search_item.get("title")
                     description = search_item.get("snippet")
+
+                    # 사용자 과거 아티클과의 중복 방지
+                    if link in past_articles:
+                        continue  
 
                     # 추가 조건: m.khan.co.kr 처리
                     if site == "khan.co.kr" and "m.khan.co.kr" in link:
@@ -417,8 +425,6 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             content = content.replace("'", "\"") # JSON 형식에 맞게 수정
             try:
                 content_dict = json.loads(content)
-                # # (딕셔너리 value -> 리스트) 변환
-                # keywords_list = list(content_dict.values())
             except json.JSONDecodeError as e:
                 print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 return (pd.DataFrame(), "")
@@ -508,17 +514,3 @@ def get_article_body(url:str, domain:str) -> str:
         return None
     except Exception as e: # 본문 추출중 오류
         return None
-
-
-
-
-# # 테스트용 # 
-# def main():
-#     feedback_list = ['AI의 발전과 미래 산업에 미칠 영향']
-#     feedback = '공학 기술과 AI의 상관 관계'
-#     query =  "사회 구조 국민의 삶 영향"
-#     selectArticle(query, feedback_list)
-
-# main()
-
-# {"user_feedback":"최근 인공지능(AI) 분야에서 주목할 만한 이슈들"}

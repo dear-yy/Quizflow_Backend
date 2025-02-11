@@ -44,3 +44,13 @@ class DescriptiveQuiz(models.Model):
     article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name="descriptive_quiz")  # 1:1 관계
     quiz_3 = models.TextField()
     quiz_3_ans = models.TextField()
+
+
+# 아티클 중복 방지를 위한 모델 
+class UserArticleHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="article_history")
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="viewed_by")
+    timestamp = models.DateTimeField(auto_now_add=True)  # 저장된 시간
+
+    class Meta:
+        ordering = ["-timestamp"]  # 최신순 정렬
