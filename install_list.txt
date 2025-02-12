@@ -37,3 +37,6 @@ Pillow
 
 # CORS(Cross-Origin Resource Sharing)를 처리하기 위한 패키지
 django-cors-headers
+
+# Postgresql 연동을 위한 패키지
+psycopg2-binary
