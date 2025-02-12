@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from environ import Env # env파일 로드를 위해, (django-environ라이브러리의 기능)
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -18,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ENV 파일 로드  
 env = Env()
+Env.read_env()
 env_path = BASE_DIR/".env" # .env파일의 경로를 BASE_DIR 아래 .env로 지정 
 # print("env 파일 경로:", env_path)  # 경로가 제대로 출력되는지 확인
 if env_path.is_file(): # 해당 경로에 파일이 존재하면,
@@ -108,8 +110,12 @@ ASGI_APPLICATION = "myquiz.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env("DB_NAME"), # DB명
+        'USER': env("DB_USER"), 
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"),
+        'PORT': env("DB_PORT"),
     }
 }
 
