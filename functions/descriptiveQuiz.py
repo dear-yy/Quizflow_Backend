@@ -79,7 +79,7 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
 
 
 
-def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, dict, dict, int]:
+def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, dict, int]:
     """
     GPT를 사용하여 사용자 답변을 평가합니다.
     """
@@ -145,7 +145,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             # JSON 변환
             evaluation_result = json.loads(evaluation_result)
             # 결과 반환
-            return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+            return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
 
         except openai.error.RateLimitError:  
             print("Rate limit reached. Retrying in 40 seconds...")
@@ -180,4 +180,4 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
         }
     }
-    return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+    return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
