@@ -8,10 +8,10 @@ from rest_framework.authtoken.models import Token
 from django.utils.timezone import now
 from django.contrib.auth.models import User
 from quiz_room.models import Quizroom, QuizroomMessage, Article, MultipleChoiceQuiz,  DescriptiveQuiz, UserArticleHistory
-from functions.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
-from functions.summarization import summarize_article                                           # 요약 기능 
-from functions.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
-from functions.descriptiveQuiz import generate_descriptive_quiz, evaluate_descriptive_answer  # 서술형 퀴즈
+from Quizflow_Backend.functions.quizroom.selectArticle import get_keywords_from_feedback, select_article                  # 아티클 추천 기능
+from Quizflow_Backend.functions.quizroom.summarization import summarize_article                                           # 요약 기능 
+from Quizflow_Backend.functions.quizroom.multipleChoiceQuiz import generate_multiple_choice_quiz_with_check, check_answer # 객관식 퀴즈
+from Quizflow_Backend.functions.quizroom.descriptiveQuiz import generate_descriptive_quiz, evaluate_descriptive_answer  # 서술형 퀴즈
 import json
 
 
