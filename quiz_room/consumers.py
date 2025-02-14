@@ -169,13 +169,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                     # 실패 처리된 사용자 입력도 저장
                     self.user_send_message(receive_message)
                 # 에러 메세지
-                self.send_json({"fail": send_message}) # 실패 메세지 전송
                 if self.quizroom:  # 실패 메세지 객체 저장
-                    QuizroomMessage.objects.create(
-                        quizroom=self.quizroom,
-                        message=send_message,
-                        is_gpt=True
-                    )
+                    self.gpt_send_message(send_message)
             else: # 처리 성공
                 # 사용자 메세지 객체 생성 
                     # stage 변환된 상태라는 점 참고(["feedback", "user_ans_1",  "user_ans_2", "user_ans_3"]에서서 한 단계씩 밀린 상태)
@@ -275,7 +270,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         self.quizroom.save() 
 
         # 메세지 형식 반환
-        send_message = f"url: {self.article.url}\ntitle: {self.article.title} \nreason: {self.article.reason}" # 메세지 형식은 나중에 수정하기
+        send_message_dic = {"url":self.article.url, "title":self.article.title, "reason":self.article.reason}
+        send_message = f"{send_message_dic}" # 메세지 형식은 나중에 수정하기 # 테스트
 
         return False, send_message
     
@@ -381,12 +377,12 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         )
 
     def gpt_send_message(self, send_message):
-        self.send_json({"message": send_message})
         QuizroomMessage.objects.create(
             quizroom=self.quizroom,
             message=send_message,
             is_gpt=True
         )
+        self.send_json({"message": send_message, "is_gpt": True})
 
 
 ''' 
