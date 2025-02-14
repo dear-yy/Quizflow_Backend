@@ -288,7 +288,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         )
         if quiz.id: # 정상 생성됨
             quiz.save()
-            return (False, f"1️⃣\n{quiz_1}\n ** 번호만 입력해주세요")
+            return (False, f"1️.\n{quiz_1}\n ** 번호만 입력해주세요")
         else:
             return (True, "1번 객관식 퀴즈 생성을 실패하였습니다.")
         
@@ -311,7 +311,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             multiple_choice_quiz.quiz_2 = quiz_2
             multiple_choice_quiz.quiz_2_ans = ans_2
             multiple_choice_quiz.save()
-            return (False, f"2️⃣\n{quiz_2}\n ** 번호만 입력해주세요")
+            return (False, f"2️.\n{quiz_2}\n ** 번호만 입력해주세요")
         else:
             return (True, "2번 객관식 퀴즈 생성을 실패하였습니다.")
         
@@ -335,7 +335,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         )
         if quiz.id: # 정상 생성됨
             quiz.save()
-            return (False, f"3️⃣\n{quiz_3}\n ** 2문장 이내로 답변을 입력해주세요")
+            return (False, f"3️.\n{quiz_3}\n ** 2문장 이내로 답변을 입력해주세요")
         else:
             return (True, "3번 서술형 퀴즈 생성을 실패하였습니다.")
         
@@ -357,10 +357,10 @@ class QuizroomConsumer(JsonWebsocketConsumer):
     def finish_quiz(self): # 퀴즈룸 종료 처리
         if self.quizroom.cnt == 3:
             # 총점 메시지 
-            send_message = f"📊 최종 점수: {self.quizroom.total_score}/30"
+            send_message = f" 최종 점수: {self.quizroom.total_score}/30"
             self.gpt_send_message(send_message)
             # 종료 메세지
-            send_message = "🎉 수고하셨습니다. 퀴즈를 모두 마치셨습니다. 🎉"
+            send_message = " 수고하셨습니다. 퀴즈를 모두 마치셨습니다. "
             self.gpt_send_message(send_message)
             
             self.quizroom.cnt += 1
