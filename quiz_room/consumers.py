@@ -209,7 +209,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
     
 
     def process_article(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
-        send_message = "관련 아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"
+        send_message = "아티클을 조회중입니다. 잠시만 기다려주시면, 아티클을 추천해 드릴게요!"
         self.gpt_send_message(send_message)
         
         # 초기화 

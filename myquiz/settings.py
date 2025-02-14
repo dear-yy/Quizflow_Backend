@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken", # 기본 토큰 인증 방식으로 사용할 앱
     "users",  # 회원가입 & 로그인 기능을 수행하는 앱
     "quiz_room", # 퀴즈 서비스를 제공할 앱
+    "battle", # 배틀 서비스를 제공할 앱
     "corsheaders", # 서버가 cors 정책 준수하도록 하는 앱
 ]
 
