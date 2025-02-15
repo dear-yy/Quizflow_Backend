@@ -53,7 +53,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne", # daphne의 runserver 명령어로 대체됨(즉, ASGI로 서버 구동)
+    "daphne", # daphne의 runserver 명령어로 대체됨(즉, ASGI로 서버 구동) # channels
     "django.contrib.admin", 
     "django.contrib.auth", # 인증을 위한 앱 # 기본 User 모델을 여기서 가져옴
     "django.contrib.contenttypes",
@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "quiz_room", # 퀴즈 서비스를 제공할 앱
     "battle", # 배틀 서비스를 제공할 앱
     "corsheaders", # 서버가 cors 정책 준수하도록 하는 앱
+    "channels",  # [MODIFIED] 실시간 매칭을 위한 channels 추가
+    "django_redis",  # [MODIFIED] Redis 캐싱 추가
 ]
 
 MIDDLEWARE = [
@@ -105,6 +107,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "myquiz.wsgi.application"
 ASGI_APPLICATION = "myquiz.asgi.application"
+
+# Channels 설정 [MODIFIED]
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": ["redis://127.0.0.1:6379"],
+        },
+    },
+}
+
+# Redis 캐시 설정 [MODIFIED]
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

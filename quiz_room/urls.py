@@ -7,11 +7,5 @@ urlpatterns = [
 
     # 로그인 유저의 특정 채팅방의 메세지 내역 조회 
     path('quizroom/<int:room_id>/message_list/', MessageListViewAPI.as_view(), name='message_list'),
-    
-    # 로그인 유저의 특정 채팅방에서의 아티클 목록 조회 & 생성 
-    # path('room/<int:room_id>/articles/', ArticlesViewAPI.as_view(), name='articles'),
-
-    # 퀴즈 종료 API 추가
-    # path('quiz/end/<int:quizroom_id>/', QuizEndViewAPI.as_view(), name='quiz_end'),
 
 ]

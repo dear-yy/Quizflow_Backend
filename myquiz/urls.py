@@ -23,7 +23,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('users/', include('users.urls')),
-    path('', include('quiz_room.urls'))
+    path('battle/', include('battle.urls')),
+    path('', include('quiz_room.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) # 웹에서 접근 url # 서버에 저장된 위치
 
  
