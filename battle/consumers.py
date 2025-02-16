@@ -5,8 +5,8 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .models import Battleroom, BattleArticle
-from functions.battle.selectBattleArticle import extract_keywords, select_article
-from functions.quizroom.summarization import summarize_article  # 요약 기능 
+from functions.battle.selectBattleArticle import extract_keywords, select_article # 랜덤 키워드 생성 & 아티클 반환
+from functions.battle.summarization import summarize_article  # 요약 기능 
 
 # 배틀 설정 (퀴즈 & 아티클 생성)
 class BattleSetupConsumer(JsonWebsocketConsumer):
@@ -101,18 +101,17 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         # 퀴즈 생성(아티클 기반)
         self.createBattleQuiz()
         
-        # # 설정 완료 메시지 전송
-        # self.send_json({
-        #     "type": "system",
-        #     "message": "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작하세요!",
-        #     "battleroom": self.battle_room,
-        # })
+        # 설정 완료 메시지 전송
+        print("배틀 설정이 완료") # 디버깅
+        self.send_json({
+            "type": "system",
+            "message": "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작하세요!"
+        })
 
     def createBattleArticle(self):
         """ 아티클을 생성하는 로직 """
         # 랜덤 키워드 반환
-        keywords = extract_keywords()
-        query = " ".join(keywords)
+        query = extract_keywords()
 
         # 아티클 반환
         recommended_article = select_article(self.player_1, self.player_2,  query)
@@ -130,7 +129,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
     
     def createBattleQuiz(self):
         """ 퀴즈 생성하는 로직"""
-        print("아티클 기반 퀴즈 생성 중...")
+        print("아티클 기반 퀴즈 생성 로직 구현 중...")
         # 생성 및 DB 저장 로직 추가 가능
         
 

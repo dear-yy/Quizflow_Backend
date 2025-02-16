@@ -30,8 +30,8 @@ extract_keywords
 '''
 
 # 랜덤 키워드 추출
-def extract_keywords() -> List:
-    max_keywords=3  # 최대 추출 키워드 수 설정
+def extract_keywords() -> Tuple[List, str]:
+    max_keywords=1  # 최대 추출 키워드 수 설정
     fail_cnt = 0  # 실패 카운트 초기화
     categories = ["사회", "과학", "역사", "철학", "종교", "예술"]
     random_category = random.choice(categories)
@@ -43,16 +43,10 @@ def extract_keywords() -> List:
             당신의 역할은 SEO(검색 엔진 최적화)에 최적화된 키워드를 생성하는 것입니다.
             1. **키워드 생성 조건**:
               - 카테고리는 {random_category}입니다.
-              - 이 카테고리와 관련된 최신 이슈, 트렌드, 또는 교양 지식 습득에 유용한 키워드를 생성하세요.
-              - 키워드간 연관성이 있도록 출력하세요.
+              - 이 카테고리와 관련된 교양 지식 습득에 유용한 키워드를 생성하세요.
               - 키워드 생성 시 고려해야 할 사항:
-                - **최신성**: 최근 일년 이내에 이슈가 되었거나 트렌드로 떠오른 키워드를 우선 고려하세요.
-                - **정보성**: 사람들이 학습하거나 탐구하고자 할 때 유용한 키워드를 생성하세요. 
-                  예를 들어, 특정 분야의 중요한 이론, 인물, 사건 등 관련된 핵심 단어를 선택합니다.
-                - **구체성**: 너무 일반적이지 않게, 구체적인 주제나 개념을 담은 키워드를 선택하세요. 예를 들어 "사회 문제"보다는 "빈곤층 지원 정책"과 같은 형태로 작성하세요.
-                - **트렌드 반영**: 현재 사회적, 과학적, 예술적, 역사적 등 각 카테고리에서 떠오르고 있는 주요 이슈나 논의 중인 내용을 반영해야 합니다.
-                - **검색 가능성**: 사람들이 검색할 가능성이 높은 단어를 기반으로, 타겟 사용자가 궁금해할만한 키워드를 고려해야 합니다.
-                - **다양성**: 가능한 한 다양한 분야와 관련된 키워드를 포함시켜 여러 사람들에게 유용할 수 있도록 하세요.
+                - **정보성**: 사람들이 학습하거나 탐구하고자 할 때 유용한 키워드를 생성하세요.
+                - **검색 가능성**: 사람들이 검색할 가능성이 높은 단어를 기반으로, 타겟 사용자가 궁금해할만한 키워드를 고려해야 합니다. 검색 가능성을 위해서 가능한 구체적이진 않고 일반적이고 포괄적인 키워드를 사용하세요.
             2. **키워드 생성 규칙**:
               - 검색 엔진에서 자주 검색될 가능성이 높은 단어를 선택하세요.
               - 명사 중심의 구체적이고 직관적인 키워드를 사용하세요.
@@ -61,6 +55,7 @@ def extract_keywords() -> List:
 
             3. **출력 형식**:
               - 추출된 키워드들은 딕셔너리 형태의 JSON 형식으로 반환하세요. 
+              - 키워드 개수에 맞게 딕셔너리를 구성하세요.
                 예:
                 ```
                   {{"k1":"키워드1", "k2":"키워드2", "k3":"키워드3", ...}}
@@ -76,7 +71,7 @@ def extract_keywords() -> List:
                       "content": ("키워드를 생성해주세요."),
                     },
                 ],
-                temperature=0,
+                temperature=0.5, # 일관성
                 max_tokens=2048,
                 top_p=1, # 추출 단어의 관련성 제어
                 frequency_penalty=0, # 반복되는 단어를 제어(고려)
@@ -96,10 +91,11 @@ def extract_keywords() -> List:
                 fail_cnt += 1
                 print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 continue  # 재시도: while문 처음부터
-            
+
+            query = " ".join(map(str, keywords_list))
             print("추출된 키워드:", keywords_list) # 디버깅 
             # 추출된 키워드 리스트 반환 
-            return keywords_list
+            return (keywords_list, query)
         
         except openai.error.RateLimitError:
             fail_cnt += 1
@@ -107,10 +103,10 @@ def extract_keywords() -> List:
             time.sleep(40)
         except Exception as e:
             print(f"Error during OpenAI API call: {e}")
-            return []
+            return ([], "")
         
         print("3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
-        return []  # 3번 이상 실패하면 빈 리스트 반환
+        return ([],"")  # 3번 이상 실패하면 빈 리스트 반환
 
 
 
@@ -143,39 +139,36 @@ def select_article(player_1:User, player_2:User, query:str) -> Dict:
 
     # 후보 기사 목록 서치 (추출된 키워드 기반 쿼리로)
     df = Google_API(player_1, player_2, query, num_results_per_site, sites)  # query로 탐색된 기사 목록
+    # print(df) # 디버깅 # 후보 기사 목록
     time.sleep(30)  # 생성 토큰 제한 에러 예방
 
     
     # 추천 아티클 결정 
     extracted_keywords = None # 초기화 # 키워드 재생성 시 활용
-    while True:
+    attempts = 0
+    while attempts <= 3: # 3회 초과하면 중단
         # 추천 아티클
         info_for_the_article = process_recommend_article(df, query)
-
+        # print(f"추천 아티클: {info_for_the_article}") # 디버깅
+        
         if info_for_the_article is None or info_for_the_article.empty: # 추천된 아티클이 없거나 본문 추출이 실패할 경우
+            attempts += 1
             # 새로운 키워드 생성하여 쿼리(검색어) 재구성
-            if "NOARTICLE" not in query:  # 중복 추가 방지
-                query = " ".join("NOARTICLE") # "NOARTICLE"을 기존 query에 추가
+            extracted_keywords = extract_keywords() # 키워드 재재추출
+            if extracted_keywords:
+                query = " ".join(map(str, extracted_keywords)) # 추출된 키워드 저장(기존 키워드 삭제 & 새로운 검색어 설정)
+            else:
+                query = None
 
-                # 키워드 추출
-                extracted_keywords = extract_keywords()
-                if extracted_keywords:
-                    query = " ".join(extracted_keywords) # 추출된 키워드 저장(기존 키워드 삭제 & 새로운 검색어 설정)
-                else:
-                    query = None
-
-                # Google API로 새로운 검색 수행
-                df = Google_API(player_1, player_2, query, num_results_per_site=5, sites=sites)
-                if df.empty: # 새로운 검색어로도 결과를 차지 못함
-                    continue  # 검색 실패 시 다시 반복
-            else: # 새로운 키워드 생성 실패. 
-                break # 루프 종료
+            # Google API로 새로운 검색 수행
+            df = Google_API(player_1, player_2, query, num_results_per_site=5, sites=sites)
+            if df.empty: # 새로운 검색어로도 결과를 차지 못함
+                continue  # 검색 실패 시 다시 반복
         else: # 추천 아티클이 존재한다면
             # Title, URL 및 Body 추출
             recommend_article_title = info_for_the_article.iloc[0]["Title"]
             recommend_article_body = info_for_the_article.iloc[0]["Body"]
             recommend_article_url = info_for_the_article.iloc[0]["URL"]
-            recommend_article_reason = info_for_the_article.iloc[0]["Reason"]
 
             # 본문이 유효한지 확인
             # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
@@ -183,12 +176,20 @@ def select_article(player_1:User, player_2:User, query:str) -> Dict:
                 print("추천 아티클 URL:", recommend_article_url)
                 break  # 본문 추출 성공 시 루프 종료
     
+    if attempts >= 3:
+        print("아티클 추천에 실패하였습니다.")
+        return {
+            "title": "",
+            "body": "", 
+            "url": "",
+            "retry_extracted_keywords": "" # 키워드 재추출시 # 필요 없으면 제거
+        }
+    
     return  {
         "title": recommend_article_title,
         "body": recommend_article_body, 
         "url": recommend_article_url,
-        "reason": recommend_article_reason, 
-        "retry_extracted_keywords": extracted_keywords # 키워드 재추출시, DB에 반영하기 위함 
+        "retry_extracted_keywords": extracted_keywords # 키워드 재추출시 # 필요 없으면 제거
     }
 
 
@@ -294,7 +295,7 @@ def process_recommend_article(df:pd.DataFrame=None, query:str="") -> pd.DataFram
     # 추천 정보 추출 프로세스
     while True:
         # 추천 아티클 탐색
-        recommend_article, reason = find_recommend_article(df, query) 
+        recommend_article = find_recommend_article(df, query) 
 
         # 아티클 존재 여부 파악
         if recommend_article.empty: # 추천된 아티클이 비어 있는 경우
@@ -326,8 +327,8 @@ def process_recommend_article(df:pd.DataFrame=None, query:str="") -> pd.DataFram
 
         # 본문이 유효할 경우 DataFrame 생성 및 반환
         info_for_the_article = pd.DataFrame(
-            [[title, url, article_body, reason]],
-            columns=["Title", "URL", "Body", "Reason"]
+            [[title, url, article_body]],
+            columns=["Title", "URL", "Body"]
         )
     
         return info_for_the_article
@@ -335,11 +336,12 @@ def process_recommend_article(df:pd.DataFrame=None, query:str="") -> pd.DataFram
 
 
 # 추천 아티클 결정#
-def find_recommend_article(df_google:pd.DataFrame, query:str="") -> Tuple[pd.DataFrame, str]:
+def find_recommend_article(df_google:pd.DataFrame, query:str="") -> pd.DataFrame:
     # 아티클 목록에 index 포함
     article_titles = df_google["Title"].tolist()
     article_descriptions = df_google["Description"].tolist()
     article_indices = df_google.index.tolist()  # DataFrame의 index를 리스트로 저장
+    # print(f"find_recommend_article: {query}") # 디버깅
 
     while True:  # RateLimitError 발생 시 재시도하도록
         try:
@@ -349,19 +351,16 @@ def find_recommend_article(df_google:pd.DataFrame, query:str="") -> Tuple[pd.Dat
             # 지시문
                 - 당신은 아티클의 키워드인 query와 아티클의 설명을 기반으로 사용자에게 적합한 아티클을 추천하는 어플리케이션의 역할을 한다.
             # 추천 조건
-                1. query에서 다루는 주제와 가장 관련이 있는 아티클을 선택하세요.
+                1. query에서 다루는 주제와 관련이 있는 아티클을 선택하세요.
                 2. 제목과 설명을 기반으로 아티클의 적합성을 판단하세요.
                 3. 단순 뉴스 보도, 광고성 내용, 또는 중복된 내용은 제외하세요.
                 4. 지식적인 설명 또는 학습에 도움을 줄 수 있는 내용이 포함되어야 한다.
 
             # 출력 형식
-              - 답변은 딕셔너리 형태로 반환하세요. 
-              - 딕셔너리 key 이름은 "index"와 "reason"으로 설정하세요.
-              - "reason" key의 value에 해당하는 문자열 내부에서 작은따옴표(')와 큰따옴표(")가 등장하지 않도록 문자열을 구성하세요.
-              - "reason" key의 value는 2문장 정도의 한국어로 출력하세요.
+              - index 번호만 출력하세요
                 예:
                 ```
-                    {{"index": "추천된 아티클의 고유 index", "reason": "왜 이 아티클이 적합한지 간단히 설명" }}
+                    6
                 ```
             """
             response = openai.ChatCompletion.create(
@@ -398,32 +397,22 @@ def find_recommend_article(df_google:pd.DataFrame, query:str="") -> Tuple[pd.Dat
 
             # GPT의 응답 분석 
             content = response["choices"][0]["message"]["content"]
-            # (JSON -> 딕셔너리) 변환
-            content = content.replace("'", "\"") # JSON 형식에 맞게 수정
+            # print(f"추천 아티클의 정보 확인\n index: {content}") # 디버깅
+
+            # 정수형으로 변환 시도
             try:
-                content_dict = json.loads(content)
-            except json.JSONDecodeError as e:
-                print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
-                return (pd.DataFrame(), "")
-                # continue  # 재시도: while문 처음부터
+                recommended_index = int(content)  # 문자열을 정수로 변환
+            except ValueError:
+                recommended_index  = 0  # 변환 실패 시 기본값 설정
 
-            # content 존재 검증
-            if not isinstance(content_dict["index"], int): 
-                return (pd.DataFrame(), "")
-            elif not isinstance(content_dict["reason"], str) or not content_dict["reason"]: # 타입과 존재 여부
-                return (pd.DataFrame(), "")
-
-            # 정수 index 저장 
-            recommended_index = int(content_dict["index"])  
             # index가 DataFrame에 존재하는지 확인
             if recommended_index not in df_google.index:
                 print(f"추천된 index({recommended_index})는 존재하지 않습니다.")
-                return (pd.DataFrame(), "")
+                return pd.DataFrame()
 
             # 해당 index로 행(해당 기사 정보) 반환
             recommended_article = df_google.loc[[recommended_index]] 
-            reason = content_dict["reason"]
-            return (recommended_article, reason) # 결과 DataFrame 형태로 반환
+            return recommended_article # 결과 DataFrame 형태로 반환
 
         except openai.error.RateLimitError:
             print("Rate limit reached. Retrying in 40 seconds...")
