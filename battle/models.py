@@ -13,9 +13,11 @@ class Battleroom(models.Model):
     total_score_1 = models.IntegerField(default=0)
     total_score_2 = models.IntegerField(default=0)
 
+    # 배틀룸 종료 여부 필드 추가(두 player 모두 end_date가 업데이트되면, True로)
+    is_ended = models.BooleanField(default=False)  # 배틀룸이 종료되었는지 여부를 나타냄
+
 
 class BattleArticle(models.Model):
-    # query =  models.TextField()
     battleroom = models.ForeignKey(Battleroom, on_delete=models.CASCADE, related_name="articles") 
     title =  models.TextField()
     url = models.URLField()

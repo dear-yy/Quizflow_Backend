@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
+from .serializers import BattleroomListSerializer, NewBattleroomSerializer
 from .models import Battleroom
 from django.contrib.auth.models import User
 
@@ -56,18 +56,14 @@ class MatchBattleViewAPI(APIView):
             # player_1_id과 player_2_id 중 본인이 존재하는 지 확인
             user_id = request.user.id  # 현재 로그인된 본인의 사용자 ID
                 
-            if player_1_id == str(user_id): # player_1_id이 본인일 경우, player_2_id는 상대
+            if player_1_id == str(user_id) or player_2_id == str(user_id): # 본인이 존재
                 # 대기열(Queue)에서 제거
                 r.lpop("battle_queue") 
                 r.lpop("battle_queue") 
+
+                # 배틀룸 생성
                 battleroom = self.create_battleroom(player_1_id, player_2_id)
-                return Response({"battleroom_id": battleroom.id, "player_1_id": player_1_id, "player_2_id":player_2_id}, status=status.HTTP_200_OK)
-            elif player_2_id == str(user_id): # player_2_id가 본인일 경우, player_1_id은 상대
-                # 대기열(Queue)에서 제거
-                r.lpop("battle_queue") 
-                r.lpop("battle_queue") 
-                battleroom = self.create_battleroom(player_1_id, player_2_id)
-                return Response({"battleroom_id": battleroom.id, "player_1_id": player_1_id, "player_2_id":player_2_id}, status=status.HTTP_200_OK)
+                return Response({"message": "매칭이 성공적으로 처리되었습니다."}, status=status.HTTP_200_OK)
             else: # 둘 다 본인이 아니면 
                 return Response({"message": "대기 중입니다."}, status=status.HTTP_200_OK)
         else:
@@ -91,7 +87,6 @@ class MatchBattleViewAPI(APIView):
         )
 
         return battleroom
-
 
 
 class CancelMatchViewAPI(APIView):
@@ -126,3 +121,38 @@ class CancelMatchViewAPI(APIView):
             return False
 
 
+
+
+class BattleroomListViewAPI(APIView):
+    """
+    배틀룸 내역 조회
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # 사용자가 참여한 배틀룸 내역을 조회 (player_1 또는 player_2로 참여한 배틀룸)
+        user = request.user  # 로그인한 사용자 가져오기
+        battlerooms = Battleroom.objects.filter(player_1=user) | Battleroom.objects.filter(player_2=user)
+        
+        serializer = BattleroomListSerializer(battlerooms, many=True) # 직렬화
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class NewBattleroomViewAPI(APIView):
+    """
+    새로운 배틀룸 조회(웹소켓 연결을 위한 정보 반환)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user  # 로그인한 사용자 가져오기
+        
+        # 사용자가 소속된 새로 생성된(is_ended=False) 배틀룸 조회 -> 무조건 1개 이하로 관리할 거임
+        battleroom = Battleroom.objects.filter(player_1=user, is_ended=False) | Battleroom.objects.filter(player_2=user, is_ended=False)
+        if battleroom:
+            serializer = NewBattleroomSerializer(battleroom, many=True) # 직렬화 # many=True로 설정했지만, 배틀룸 무조건 1개 이하로 관리할 거임
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else: 
+            return Response({"message": "아직 매칭이 완료되지 않아 배틀룸이 생성되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        

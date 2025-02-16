@@ -66,8 +66,8 @@ INSTALLED_APPS = [
     "quiz_room", # 퀴즈 서비스를 제공할 앱
     "battle", # 배틀 서비스를 제공할 앱
     "corsheaders", # 서버가 cors 정책 준수하도록 하는 앱
-    "channels",  # [MODIFIED] 실시간 매칭을 위한 channels 추가
-    "django_redis",  # [MODIFIED] Redis 캐싱 추가
+    "channels",  # 
+    "django_redis",  # Redis 캐싱 추가
 ]
 
 MIDDLEWARE = [
@@ -108,17 +108,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "myquiz.wsgi.application"
 ASGI_APPLICATION = "myquiz.asgi.application"
 
-# Channels 설정 [MODIFIED]
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": ["redis://127.0.0.1:6379"],
-        },
-    },
-}
-
-# Redis 캐시 설정 [MODIFIED]
+# Redis 캐시 설정
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

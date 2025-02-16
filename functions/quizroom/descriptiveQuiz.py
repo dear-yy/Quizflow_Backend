@@ -8,7 +8,7 @@ from typing import Tuple
 
 # Django 프로젝트 절대 경로로 추가
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myquiz.settings')
 
 # 키 설정 
 openai.api_key = settings.OPENAI_API_KEY 

@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Quizroom, QuizroomMessage, Article
-from django.contrib.auth.models import User
 from users.serializers import UserSerializer
 
 # QuizroomMessage Serializer

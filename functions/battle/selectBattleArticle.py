@@ -4,15 +4,18 @@ import openai
 import time
 import json
 import requests
+import random
+import django
 import pandas as pd
 from bs4 import BeautifulSoup
 from typing import List, Dict, Tuple
 from django.conf import settings
 from django.contrib.auth.models import User
-from quiz_room.models import Article
+from quiz_room.models import Article # 각 사용자의 과거 아티클 중복 제거
+
 # Django 프로젝트 절대 경로로 추가
-# 두 단계 위로 올라가서 루트 디렉토리(myquiz/)에 접근
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))  # __file__ : 현재 경로
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..') )) # __file__ : 현재 경로
+
 # DJANGO_SETTINGS_MODULE 환경 변수를 설정하여 Django 설정을 로드합니다.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myquiz.settings')
 
@@ -23,51 +26,33 @@ GOOGLE_API_KEY = settings.GOOGLE_API_KEY
 
 
 '''
-get_keywords_from_feedback
-    - extract_keywords
+extract_keywords
 '''
 
-def get_keywords_from_feedback(user_feedback:str, user_feedback_list:list, keyword_list:list) -> Tuple[List[str], str]:
-    # 키워드 추출 (기사 검색어 설정)
-    query = " ".join(keyword_list)  # 검색어 # user_feedback이 빈 경우, 대체로 이전 키워드 활용
-    extracted_keywords = extract_keywords(query, user_feedback_list, max_keywords=3)
-
-    # 키워드 기반 최종 검색어
-    if extracted_keywords:
-        query = " ".join(extracted_keywords)  # 추출된 키워드로 새 쿼리 
-        return (extracted_keywords, query)
-    else: # 추출된 키워드 없다면
-        return (None, None)  # 초기 쿼리 설정 필요
-
-
-# 키워드 추출
-def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> List:
-    """
-        query: 최종 검색어. (최신)user_feedback이 "NOFEEDBACK"일 경우 사용.
-        user_feedback_list : 사용자가 입력한 텍스트 내역.
-        max_keywords : 반환할 최대 키워드 수.
-        Returns value: 추출된 SEO 키워드 리스트.
-    """
+# 랜덤 키워드 추출
+def extract_keywords() -> List:
+    max_keywords=3  # 최대 추출 키워드 수 설정
     fail_cnt = 0  # 실패 카운트 초기화
+    categories = ["사회", "과학", "역사", "철학", "종교", "예술"]
+    random_category = random.choice(categories)
+    print(random_category)
 
     while fail_cnt < 3:
         try:
-            # system(gpt) 역할 프롬프팅
             system_prompt = f"""
             당신의 역할은 SEO(검색 엔진 최적화)에 최적화된 키워드를 생성하는 것입니다.
-
             1. **키워드 생성 조건**:
-              - 최신 피드백(리스트에서 인덱스가 높은 순서)을 가장 우선적으로 고려하여 검색 가능성이 높은 핵심 키워드를 추출하세요.
-              - 최신 피드백이 'NOFEEDBACK'인 경우:
-                - 기존 쿼리(query)를 참고하여 더 세부적이고 구체적인 키워드를 생성하세요.
-                - 기존 쿼리와 중복되지 않는 새로운 키워드를 생성해야 합니다.
-              - 사용자 피드백 리스트가 전부 'NOFEEDBACK'인 경우:
-                다음 주제 중 하나를 무작위로 선택하세요:
-                  <역사,철학,과학,예술,기술,문화,건강>
-                - 선택한 주제를 기반으로 검색 가능성이 높은 키워드를 생성하세요.
-              - 쿼리가 'NOARTICLE'로 끝나면:
-                - 쿼리의 마지막을 제외하고 나머지 내용을 기반으로 더 일반적이고 포괄적인 키워드를 생성하세요.
-
+              - 카테고리는 {random_category}입니다.
+              - 이 카테고리와 관련된 최신 이슈, 트렌드, 또는 교양 지식 습득에 유용한 키워드를 생성하세요.
+              - 키워드간 연관성이 있도록 출력하세요.
+              - 키워드 생성 시 고려해야 할 사항:
+                - **최신성**: 최근 일년 이내에 이슈가 되었거나 트렌드로 떠오른 키워드를 우선 고려하세요.
+                - **정보성**: 사람들이 학습하거나 탐구하고자 할 때 유용한 키워드를 생성하세요. 
+                  예를 들어, 특정 분야의 중요한 이론, 인물, 사건 등 관련된 핵심 단어를 선택합니다.
+                - **구체성**: 너무 일반적이지 않게, 구체적인 주제나 개념을 담은 키워드를 선택하세요. 예를 들어 "사회 문제"보다는 "빈곤층 지원 정책"과 같은 형태로 작성하세요.
+                - **트렌드 반영**: 현재 사회적, 과학적, 예술적, 역사적 등 각 카테고리에서 떠오르고 있는 주요 이슈나 논의 중인 내용을 반영해야 합니다.
+                - **검색 가능성**: 사람들이 검색할 가능성이 높은 단어를 기반으로, 타겟 사용자가 궁금해할만한 키워드를 고려해야 합니다.
+                - **다양성**: 가능한 한 다양한 분야와 관련된 키워드를 포함시켜 여러 사람들에게 유용할 수 있도록 하세요.
             2. **키워드 생성 규칙**:
               - 검색 엔진에서 자주 검색될 가능성이 높은 단어를 선택하세요.
               - 명사 중심의 구체적이고 직관적인 키워드를 사용하세요.
@@ -87,13 +72,8 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"사용자 피드백 (최신 피드백 우선 정렬): {user_feedback_list}\n"
-                            f"쿼리: {query}\n\n"
-                            "키워드를 생성해주세요."
-                        ),
+                    { "role": "user",
+                      "content": ("키워드를 생성해주세요."),
                     },
                 ],
                 temperature=0,
@@ -116,10 +96,11 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
                 fail_cnt += 1
                 print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 continue  # 재시도: while문 처음부터
-
+            
+            print("추출된 키워드:", keywords_list) # 디버깅 
             # 추출된 키워드 리스트 반환 
             return keywords_list
-
+        
         except openai.error.RateLimitError:
             fail_cnt += 1
             print("Rate limit에 도달했습니다. 40초 후 재시도합니다...")
@@ -127,10 +108,9 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
         except Exception as e:
             print(f"Error during OpenAI API call: {e}")
             return []
-
-    print("3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
-    return []  # 3번 이상 실패하면 빈 리스트 반환
-
+        
+        print("3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
+        return []  # 3번 이상 실패하면 빈 리스트 반환
 
 
 
@@ -146,7 +126,7 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
         
 '''
 # 사용자 입력 
-def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
+def select_article(player_1:User, player_2:User, query:str) -> Dict:
 
     num_results_per_site = 3    # 각 사이트당 결과 개수
     sites = [                   # 검색 가능 사이트 목록 
@@ -162,15 +142,15 @@ def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
     ]
 
     # 후보 기사 목록 서치 (추출된 키워드 기반 쿼리로)
-    df = Google_API(user, query, num_results_per_site, sites)  # query로 탐색된 기사 목록
+    df = Google_API(player_1, player_2, query, num_results_per_site, sites)  # query로 탐색된 기사 목록
     time.sleep(30)  # 생성 토큰 제한 에러 예방
 
     
-    # 추천 아티클 결정 # 동일 아티클 추천 방지 필요 -> cache 적용
-    extracted_keywords = None
+    # 추천 아티클 결정 
+    extracted_keywords = None # 초기화 # 키워드 재생성 시 활용
     while True:
         # 추천 아티클
-        info_for_the_article = process_recommend_article(df, user_feedback_list)
+        info_for_the_article = process_recommend_article(df, query)
 
         if info_for_the_article is None or info_for_the_article.empty: # 추천된 아티클이 없거나 본문 추출이 실패할 경우
             # 새로운 키워드 생성하여 쿼리(검색어) 재구성
@@ -178,14 +158,14 @@ def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
                 query = " ".join("NOARTICLE") # "NOARTICLE"을 기존 query에 추가
 
                 # 키워드 추출
-                extracted_keywords = extract_keywords(query, user_feedback_list, max_keywords=3)
+                extracted_keywords = extract_keywords()
                 if extracted_keywords:
                     query = " ".join(extracted_keywords) # 추출된 키워드 저장(기존 키워드 삭제 & 새로운 검색어 설정)
                 else:
                     query = None
 
                 # Google API로 새로운 검색 수행
-                df = Google_API(user, query, num_results_per_site=5, sites=sites)
+                df = Google_API(player_1, player_2, query, num_results_per_site=5, sites=sites)
                 if df.empty: # 새로운 검색어로도 결과를 차지 못함
                     continue  # 검색 실패 시 다시 반복
             else: # 새로운 키워드 생성 실패. 
@@ -217,13 +197,14 @@ def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
 
 
 # 후보 기사들 ("Title", "Description", "Link", "Domain") 형식의 데이터프레임으로
-def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 데이터 구조 (행&열 구성)
+def Google_API(player_1:User, player_2:User, query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 데이터 구조 (행&열 구성)
     # 각 사이트의 결과 모음 리스트(추천 기사 후보 리스트)
     df_google_list = [] # 요소는 dataframe으로 한 기사의 정보를 담고 있음
 
     # 사용자의 과거 아티클 정보 # 유저 정보 파라미터 필요
-    past_articles = set(Article.objects.filter(user=user).order_by('-timestamp')[:100].values_list('url', flat=True)) # user의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
-
+    player_1_past_articles = set(Article.objects.filter(user=player_1).order_by('-timestamp')[:100].values_list('url', flat=True)) # player_1의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
+    player_2_past_articles = set(Article.objects.filter(user=player_2).order_by('-timestamp')[:100].values_list('url', flat=True)) # plaeyr_2의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
+    past_articles = player_1_past_articles.union(player_2_past_articles)
 
     # 사이트 별 쿼리로 후보 기사 조회
     for site in sites: 
@@ -306,14 +287,14 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
 # 추천된 아티클에서 URL, Body, Title을 추출
     # 추천된 아티클이 없거나, 추천된 아티클의 본문을 가져올 수 없을 경우 
     # 해당 데이터를 삭제하고 새로운 추천을 요청하는 함수
-def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.DataFrame:
+def process_recommend_article(df:pd.DataFrame=None, query:str="") -> pd.DataFrame:
     # 초기화
     recommend_article = pd.DataFrame(columns=["Title", "Description", "Link", "Domain"])
  
     # 추천 정보 추출 프로세스
     while True:
         # 추천 아티클 탐색
-        recommend_article, reason = find_recommend_article(df, user_feedback) 
+        recommend_article, reason = find_recommend_article(df, query) 
 
         # 아티클 존재 여부 파악
         if recommend_article.empty: # 추천된 아티클이 비어 있는 경우
@@ -354,7 +335,7 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
 
 
 # 추천 아티클 결정#
-def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> Tuple[pd.DataFrame, str]:
+def find_recommend_article(df_google:pd.DataFrame, query:str="") -> Tuple[pd.DataFrame, str]:
     # 아티클 목록에 index 포함
     article_titles = df_google["Title"].tolist()
     article_descriptions = df_google["Description"].tolist()
@@ -366,13 +347,12 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
                 # 토큰 초과 에러 발생해서, title 정보는 제외함!
             system_prompt = f"""
             # 지시문
-                - 당신은 사용자의 피드백과 아티클의 설명을 기반으로 사용자에게 적합한 아티클을 추천하는 어플리케이션의 역할을 한다.
+                - 당신은 아티클의 키워드인 query와 아티클의 설명을 기반으로 사용자에게 적합한 아티클을 추천하는 어플리케이션의 역할을 한다.
             # 추천 조건
-                1. 최신 피드백(리스트에서 인덱스가 높은 순서)을 우선적으로 고려하세요.
-                2. 최신 피드백이 다루는 주제와 가장 관련이 있는 아티클을 선택하세요.
-                3. 제목과 설명을 기반으로 아티클의 적합성을 판단하세요.
-                4. 단순 뉴스 보도, 광고성 내용, 또는 중복된 내용은 제외하세요.
-                5. 지식적인 설명 또는 학습에 도움을 줄 수 있는 내용이 포함되어야 한다.
+                1. query에서 다루는 주제와 가장 관련이 있는 아티클을 선택하세요.
+                2. 제목과 설명을 기반으로 아티클의 적합성을 판단하세요.
+                3. 단순 뉴스 보도, 광고성 내용, 또는 중복된 내용은 제외하세요.
+                4. 지식적인 설명 또는 학습에 도움을 줄 수 있는 내용이 포함되어야 한다.
 
             # 출력 형식
               - 답변은 딕셔너리 형태로 반환하세요. 
@@ -394,7 +374,7 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
                     {
                         "role": "user",
                         "content": (
-                            f"사용자 피드백: {user_feedback_list}\n\n"
+                            f"query: {query}\n\n"
                             "아티클 목록 (index 포함):\n"
                             + "\n".join(
                                 f"{i}. [Index: {idx}]  설명: {description}\n  "
