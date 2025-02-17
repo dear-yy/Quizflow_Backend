@@ -4,9 +4,11 @@
 from channels.generic.websocket import JsonWebsocketConsumer
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from .models import Battleroom, BattleArticle
+from .models import Battleroom, BattleArticle, BattleQuiz
 from functions.battle.selectBattleArticle import extract_keywords, select_article # 랜덤 키워드 생성 & 아티클 반환
-from functions.battle.summarization import summarize_article  # 요약 기능 
+from functions.battle.summarization import summarize_article  # 요약 기능
+from functions.battle.battleQuiz import generate_quiz_set, generate_descriptive_quiz, check_answers, evaluate_descriptive_answer
+import json
 
 # 배틀 설정 (퀴즈 & 아티클 생성)
 class BattleSetupConsumer(JsonWebsocketConsumer):
@@ -129,11 +131,31 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
     
     def createBattleQuiz(self):
         """ 퀴즈 생성하는 로직"""
-        print("아티클 기반 퀴즈 생성 로직 구현 중...")
         # 생성 및 DB 저장 로직 추가 가능
-        
+        if not self.article:
+            print("아티클이 설정되지 않았습니다. 퀴즈를 생성할 수 없습니다.")
+            return
+        print("아티클 기반 퀴즈를 생성 중...")
 
+        # generate_quiz_set 호출 (객관식 퀴즈 + 서술형 퀴즈를 한 번에 생성)
+        quiz_set = generate_quiz_set(self.article)
 
+        # 퀴즈 DB 저장
+        BattleQuiz.objects.create(
+            battleroom=self.battle_room,
+            article=self.article,
+            multiple_choice=quiz_set['multiple_choice'],
+            descriptive=quiz_set['descriptive']
+        )
+
+        # 퀴즈 전송
+        self.send_json({
+            "type": "quiz",
+            "multiple_choice": quiz_set['multiple_choice'],
+            "descriptive": quiz_set['descriptive'],
+        })
+
+    
 
 # 개별 퀴즈 진행
 class BattleConsumer(JsonWebsocketConsumer):
@@ -149,4 +171,29 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.role = None
         self.battle_room = None
         print("연결을 중단합니다.")
+
+    def receive_json(self, content_dict, **kwargs):
+        action = content_dict.get("action")
+
+        if action == "submit_answer":
+            quiz_type = content_dict.get("quiz_type")
+            answer = content_dict.get("answer")
+            self.process_answer(quiz_type, answer)
+
+    def process_answer(self, quiz_type, answer):
+        """답안 처리 로직"""
+        if quiz_type == "multiple_choice":
+            # 객관식 퀴즈 답안 확인
+            is_correct = check_answers(answer)
+            self.send_json({
+                "type": "answer_feedback",
+                "result": "correct" if is_correct else "incorrect",
+            })
+        elif quiz_type == "descriptive":
+            # 서술형 퀴즈 답안 평가
+            feedback = evaluate_descriptive_answer(answer)
+            self.send_json({
+                "type": "answer_feedback",
+                "feedback": feedback,
+            })
         
