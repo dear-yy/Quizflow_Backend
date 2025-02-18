@@ -25,6 +25,7 @@ class BattleArticle(models.Model):
 
 
 class BattleQuiz(models.Model):
+    # 퀴즈 조회시 배틀룸으로 조회하는 게 더 좋지 않을까? 배틀룸도 넣는게 좋을까?(고민)
     battle_article = models.OneToOneField(BattleArticle, on_delete=models.CASCADE, related_name="multiple_choice_quiz")  # 1:1 관계
     quiz_1 = models.TextField()
     quiz_1_ans = models.IntegerField()

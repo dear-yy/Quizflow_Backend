@@ -14,7 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myquiz.settings')
 openai.api_key = settings.OPENAI_API_KEY 
 
 '''
-generate_descriptive_quiz
+generate_descriptive_quiz 
 evaluate_descriptive_answer
 '''
 
@@ -22,7 +22,7 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
 
     while True:  # RateLimitError가 발생하면 재시도
         try:
-            # 아티클에서 퀴즈 생성
+            # 아티클기반 퀴즈 생성은 위한 프롬프트
             prompt_quiz = f"""
             당신은 '서술형 퀴즈 생성기'라는 역할을 맡게 됩니다. 당신의 목표는 아티클 기반 서술형 퀴즈 생성입니다. 서술형 퀴즈 생성기는 주어진 아티클을 기반으로 해당 아티클의 주제 요약 퀴즈를 한문제 출제하세요.
             ## 작업 순서
@@ -47,7 +47,7 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
             )
             quiz = response_quiz["choices"][0]["message"]["content"].strip()
 
-            # 모범 답안 생성
+            # 모범 답안 생성을 위한 프롬프트
             prompt_answer = f"""
             당신은 '모범 답안 생성기'라는 역할을 맡게 됩니다. 모범 답안 생성기는 주어진 아티클을 기반으로 주어진 퀴즈 적합한 한 개의 모범 답안을 한 개 작성하세요.
             ## 작업 순서
@@ -60,6 +60,7 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
             퀴즈: {quiz}
             모범 답안:
             """
+            # Open API 호출
             response_answer = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -151,16 +152,16 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             print("Rate limit reached. Retrying in 40 seconds...")
             time.sleep(40)
 
-        except UnicodeDecodeError as e:
-            print(f"유니코드 디코딩 오류 발생: {e}")
+        except UnicodeDecodeError as e:  # 유니코드 디코딩 오류 발생 시
+            print(f"유니코드 디코딩 오류 발생: {e}") 
             fail = True
-            break  # 유니코드 디코딩 오류 발생 시 루프 종료
+            break # 루프 종료
 
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError as e: # JSON 디코딩 오류 발생 시
             print(f"JSON 디코딩 오류 발생: {e}")
             print("GPT 응답:", evaluation_result)  # 응답 내용 확인
             fail = True
-            break  # JSON 디코딩 오류 발생 시 루프 종료
+            break  #  루프 종료
     
     if not isinstance(evaluation_result["total_score"], int): # 정수가 아니면
         fail = True

@@ -14,7 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myquiz.settings')
 openai.api_key = settings.OPENAI_API_KEY 
 
 '''
-generate_multiple_choice_quiz_with_check
+generate_multiple_choice_quiz_with_check 
 check_answer
 '''
 
