@@ -165,6 +165,8 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             quiz_3_ans = quiz_3_ans
         )
 
+        # 배틀룸의 stage 변경 코드 추가하기 [setting -> quiz_1]
+
 
     
 

@@ -31,8 +31,9 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
             ## 주의사항
               - 항상 아티클의 내용을 기반으로 객관적인 문제를 출제하세요.
               - **한 개의 퀴즈만** 출제하세요.
-            아티클: {article_summary}
-            퀴즈:
+            ## 아티클: {article_summary}
+            ## 출력 형식 
+                문제: 문제 지문
             """
 
             # Open API 호출

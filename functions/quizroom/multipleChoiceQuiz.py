@@ -40,9 +40,16 @@ def generate_multiple_choice_quiz_with_check(summary, previous_quiz=None) -> Tup
 
     ## 정답을 화면에 절대 출력하지 않도록 합니다.
 
-    아티클 요약:
-    {summary}
-    객관식 문제:
+    ## 아티클 요약: {summary}
+    
+    ## 출력 형식 
+        문제: 문제 지문
+
+        1. 1번 선택지 내용 
+        2. 2번 선택지 내용 
+        3. 3번 선택지 내용 
+        4. 4번 선택지 내용 
+        5. 5번 선택지 내용 
     """
     while True:  # RateLimitError가 발생하면 재시도
         try:
