@@ -227,8 +227,8 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     
     prompt_evaluation = f"""
     당신은 '서술형 퀴즈 평가자'라는 역할을 맡게 됩니다. 서술형 퀴즈 평가자는 주어진 평가기준을 기반으로 사용자의 답변을 평가하여 점수를 도출하고 사용자 답변에 대한 피드백을 제공합니다.
-    즉, 당신의 목표는 모범 답안 기반 사용자의 작성 답안을 정확하게 평가하고 사용자 답변에 대해 이해도와 개선점이라는 피드백을 생성하는 것입니다.
-    아래는 사용자가 작성한 서술형 퀴즈 답변입니다. 또한 퀴즈와 모범 답안을 참고하여, 답변을 평가하고 점수를 도출하고 개선점과 이해도에 대한 피드백을 작성하세요.
+    즉, 당신의 목표는 모범 답안 기반 사용자의 작성 답안을 정확하게 평가하고 사용자 답변에 대해 이해도 피드백을 생성하는 것입니다.
+    아래는 사용자가 작성한 서술형 퀴즈 답변입니다. 또한 퀴즈와 모범 답안을 참고하여, 답변을 평가하고 점수를 도출하고 이해도에 대한 피드백을 1줄로 작성하세요.
 
     [퀴즈]: {quiz}
     [모범 답안]: {model_answer}
@@ -241,7 +241,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     4) 사용자 답안이 2문장 이내로 작성됐음 (1점 부여)
     5) 사용자 답안이 사실과 다른 내용을 포함하지 않았음 (1점 부여)
 
-    점수를 각 기준에 따라 합산하여 총점(6점 만점)을 부여하고, 각 기준에 대한 이해도 피드백과 개선점 피드백을 작성하세요.
+    점수를 각 기준에 따라 합산하여 총점(6점 만점)을 부여하고, 각 기준에 대한 이해도 피드백을 작성하세요.
 
     ##최종 출력 형식:
     {{
@@ -254,8 +254,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
         "fact_accuracy": "사실성 평가에 대한 피드백"
       }},
       "feedback": {{
-        "understanding_feedback": "사용자의 이해도에 대한 피드백",
-        "improvement_feedback": "사용자가 개선할 점에 대한 피드백"
+        "understanding_feedback": "사용자의 이해도에 대한 피드백
       }}
     }}
     """
@@ -314,21 +313,8 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             "fact_accuracy": "JSON 변환 오류로 평가 실패"
         },
         "feedback": {
-            "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패",
-            "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
+            "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패"
         }
     }
     return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
-
-
-
-
-# 전체 답변 채점용? 
-# def check_answers(user_answers, mcq_list, descriptive_answer) -> Tuple[List[bool], Tuple[bool, dict, dict, int]]:
-#     if len(user_answers) < 3:
-#         return [False, False, False], (False, {}, {}, 0)  # 모든 문제를 다 풀기 전까지 정답 공개 금지
-    
-#     mcq_results = [user_answers[i] == mcq_list[i]["correct_answer"] for i in range(2)]
-#     descriptive_result = evaluate_descriptive_answer(user_answers[2], descriptive_answer["quiz"], descriptive_answer["answer"])
-#     return mcq_results + [descriptive_result[0]], descriptive_result
 
