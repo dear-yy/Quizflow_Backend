@@ -165,7 +165,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             quiz_3_ans = quiz_3_ans
         )
 
-        # 배틀룸의 stage 변경 코드 추가하기 [setting -> quiz_1]
+        # 배틀룸의 stage 변경 코드 추가하기 [setup -> quiz_1]
 
 
     
@@ -177,15 +177,19 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.user = None
         self.role = None # 본인이 player_1인지 player_2인지
         self.battle_room = None
+        self.battle_quiz =  None
         self.accept()
 
     def disconnect(self, close_code):
         self.user = None
         self.role = None
+        self.battle_quiz =  None
         self.battle_room = None
         print("연결을 중단합니다.")
 
     # def receive_json(self, content_dict, **kwargs):
+        # 퀴즈 상태 quiz_1이 아닌 경우 -> 종료 
+
     #     action = content_dict.get("action")
 
     #     if action == "submit_answer":
@@ -219,4 +223,42 @@ class BattleConsumer(JsonWebsocketConsumer):
     #             "quiz_number": quiz_number,
     #             "feedback": feedback,
     #         })
+
+    # 퀴즈 모델 데이터 조회 함수 
+
+    # 각 단계 별 처리 함수 
         
+
+'''
+self.role
+    if 1번 플레이어:
+        (now_stage_1 / end_date_1 / total_score_1) 필드 사용
+    else 2번 플레이어:
+        (now_stage_2 / end_date_2 / total_score_2) 필드 사용
+
+
+
+stage [setup -> quiz_1 -> quiz_2 -> quiz_3 -> finish]
+
+quiz_1 
+    시스템(GPT) 퀴즈 1번 사용자(클라이언트)에게 전달 
+    사용자(클라이언트) 퀴즈 1번 답변 시스템으로 전달 
+    시스템(GPT) 채점 결과 사용자(클라이언트)에게 전달 
+quiz_2
+    ...동일...
+quiz_3
+    ...동일...
+finish
+    시스템이 사용자(클라이언트)에게 종료 메세지(총점) 전송 
+
+
+채점 메세지 형식 
+    - 정답입니다.(2점)
+    - 오답입니다.(0점)
+    - 피드백: ~~~ (n점)
+
+
+종료 메세지 
+    - 000님, 수고하셨습니다. 총 점수는 M점 입니다. 
+
+'''
