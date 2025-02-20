@@ -125,14 +125,14 @@ class CancelMatchViewAPI(APIView):
 
 class BattleroomListViewAPI(APIView):
     """
-    배틀룸 내역 조회
+    배틀룸 종료 내역 조회
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # 사용자가 참여한 배틀룸 내역을 조회 (player_1 또는 player_2로 참여한 배틀룸)
         user = request.user  # 로그인한 사용자 가져오기
-        battlerooms = Battleroom.objects.filter(player_1=user) | Battleroom.objects.filter(player_2=user)
+        battlerooms = Battleroom.objects.filter(player_1=user,  is_ended=True) | Battleroom.objects.filter(player_2=user, is_ended=True)
         
         serializer = BattleroomListSerializer(battlerooms, many=True) # 직렬화
         return Response(serializer.data, status=status.HTTP_200_OK)
