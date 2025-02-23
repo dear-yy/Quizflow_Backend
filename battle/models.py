@@ -3,11 +3,11 @@ from django.contrib.auth.models import User
 
 # Battleroom 모델
 class Battleroom(models.Model):
-    player_1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player1")
-    player_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player2")
-    # stage [setup -> quiz_1 -> quiz_2 -> quiz_3 -> finish]
-    now_stage_1 = models.CharField(max_length=50, default="setup")  # 메세지 복원 시 활용할 필드
-    now_stage_2 = models.CharField(max_length=50, default="setup")
+    player_1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player1_battleroom")
+    player_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player2_battleroom")
+    # stage [quiz_1 -> quiz_1_ans -> quiz_2 -> quiz_2_ans -> quiz_3 -> quiz_3_ans -> finish]
+    now_stage_1 = models.CharField(max_length=50, default="quiz_1")  # 메세지 복원 시 활용할 필드
+    now_stage_2 = models.CharField(max_length=50, default="quiz_1")
     start_date= models.DateTimeField(auto_now_add=True) # 처음 생성될 때만
     end_date_1 = models.DateTimeField(null=True, blank=True) 
     end_date_2 = models.DateTimeField(null=True, blank=True) 
@@ -26,8 +26,8 @@ class BattleArticle(models.Model):
 
 
 class BattleQuiz(models.Model):
-    # 퀴즈 조회시 배틀룸으로 조회하는 게 더 좋지 않을까? 배틀룸도 넣는게 좋을까?(고민)
-    battle_article = models.OneToOneField(BattleArticle, on_delete=models.CASCADE, related_name="multiple_choice_quiz")  # 1:1 관계
+    battleroom = models.OneToOneField(Battleroom, on_delete=models.CASCADE, related_name="battle_quiz")  # 1:1 관계
+    battle_article = models.OneToOneField(BattleArticle, on_delete=models.CASCADE, related_name="battle_quiz")  # 1:1 관계
     quiz_1 = models.TextField()
     quiz_1_ans = models.IntegerField()
     quiz_2 = models.TextField(null=True, blank=True)

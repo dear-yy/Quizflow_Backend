@@ -80,9 +80,9 @@ class MatchBattleViewAPI(APIView):
         battleroom = Battleroom.objects.create(
             player_1=player_1,
             player_2=player_2,
-            # 초기 스테이지는 기본값 "feedback"으로 설정됨
-            now_stage_1="feedback",
-            now_stage_2="feedback",
+            # 초기 스테이지는 기본값 "quiz_1"으로 
+            now_stage_1="quiz_1",
+            now_stage_2="quiz_1",
             start_date=timezone.now()  # 배틀룸 생성 시각
         )
 

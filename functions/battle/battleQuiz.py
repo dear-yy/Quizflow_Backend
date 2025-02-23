@@ -140,9 +140,9 @@ def check_answer(user_answer, correct_answer) -> Tuple[bool, str, int]:
         if 1 <= user_answer_int <= 5: # 1과 5 사이의 정수
             # 채점
             if user_answer_int == correct_answer: # 정답
-                return False, "축하합니다. 정답입니다.", 2
+                return False, " 정답입니다.(2점)", 2
             else: #오답
-                return False, f"오답입니다. 정답은 {correct_answer}입니다.", 0
+                return False, f"오답입니다.(0점)", 0
         else:
             return True, "범위가 유효하지 않습니다. 다시 입력해주세요.", 0
     else: # 사용자 입력이 숫자가 아닐 경우 처리
@@ -225,8 +225,8 @@ def generate_descriptive_quiz(article_summary) -> Tuple[str, str]:
             time.sleep(40)
 
 
-# 서술형 채점 -> return (오류 발생 여부, 평가 기준, 채점 피드백, 점수)
-def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, dict, dict, int]:
+# 서술형 채점 -> return (오류 발생 여부, 채점 피드백, 점수)
+def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, str, int]:
     """
     GPT를 사용하여 사용자 답변을 평가합니다.
     """
@@ -255,16 +255,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     ##최종 출력 형식:
     {{
       "total_score": 0,
-      "criteria": {{
-        "content_inclusion": "핵심 내용 포함에 대한 피드백",
-        "keyword_usage": "키워드 사용에 대한 피드백",
-        "objective_representation": "의도 왜곡에 대한 피드백",
-        "length_limit": "2문장 제한에 대한 피드백",
-        "fact_accuracy": "사실성 평가에 대한 피드백"
-      }},
-      "feedback": {{
-        "understanding_feedback": "사용자의 이해도에 대한 피드백
-      }}
+      "understanding_feedback": "사용자의 이해도에 대한 피드백
     }}
     """
 
@@ -291,7 +282,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             # JSON 변환
             evaluation_result = json.loads(evaluation_result)
             # 결과 반환
-            return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+            return fail, evaluation_result["understanding_feedback"] , evaluation_result["total_score"]
 
         except openai.error.RateLimitError:  
             print("Rate limit reached. Retrying in 40 seconds...")
@@ -314,16 +305,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     # 처리 실패시 
     evaluation_result = {
         "total_score": 0,
-        "criteria": {
-            "content_inclusion": "JSON 변환 오류로 평가 실패",
-            "keyword_usage": "JSON 변환 오류로 평가 실패",
-            "objective_representation": "JSON 변환 오류로 평가 실패",
-            "length_limit": "JSON 변환 오류로 평가 실패",
-            "fact_accuracy": "JSON 변환 오류로 평가 실패"
-        },
-        "feedback": {
-            "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패"
-        }
+        "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패"
     }
-    return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+    return fail, evaluation_result["understanding_feedback"] , evaluation_result["total_score"]
 
