@@ -109,6 +109,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         
         # 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
         print("배틀 설정이 완료") # 디버깅
+        self.battle_room.start_date = now()
         self.send_json({
             "type": "system",
             "message": "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작하세요!"
@@ -332,6 +333,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.battle_room.end_date_1 = now()
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_1}점 입니다."
             self.battle_room.now_stage_1 = "end"
+            
+
+        if self.battle_room.now_stage_1 == "end" and self.battle_room.end_date_2 is not None: # 플레이어 2는 이미 끝난 상태라면
+            self.battle_room.is_ended = True
 
         self.battle_room.save()
         self.send_json({"message":send_message , "is_gpt": True})
@@ -342,7 +347,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_1()
         
 
-    def process_stage_player_2(self, message_content):   
+    def process_stage_player_2(self, message_content=""):   
         send_message =  "" # 초기화
 
         if self.battle_room.now_stage_2 == "quiz_1": # quiz_1 (문제) 메세지 전송 
@@ -383,6 +388,9 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.battle_room.now_stage_2 = "end"
            
 
+        if self.battle_room.now_stage_2 == "end" and self.battle_room.end_date_1 is not None: # 플레이어 1은 이미 끝난 상태라면
+            self.battle_room.is_ended = True
+
         self.battle_room.save()
         self.send_json({"message":send_message , "is_gpt": True})
 
@@ -390,6 +398,9 @@ class BattleConsumer(JsonWebsocketConsumer):
         if self.battle_room.now_stage_2 in ["quiz_2", "quiz_3", "finish"]:
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_2()
+
+        
+
 
 
 
