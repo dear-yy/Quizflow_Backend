@@ -15,7 +15,7 @@ import json
 '''
 [사용자 전송 메세지 형식]
     시작 메세지 
-    {"type":"auth", "token":"token", "player_role": "palyer_n"}
+    {"type":"auth", "token":"token", "player_role": "player_n"}
 '''
 # 배틀 설정 (퀴즈 & 아티클 생성)
 class BattleSetupConsumer(JsonWebsocketConsumer):
@@ -175,7 +175,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
 '''
 [사용자 전송 메세지 형식]
     시작 메세지 
-    {"type":"auth", "player_role": "palyer_n"}
+    {"type":"auth", "player_role": "player_n"}
 
     퀴즈 메세지 
     {"type":"user", "message":"quiz_ans"}
@@ -230,9 +230,9 @@ class BattleConsumer(JsonWebsocketConsumer):
         
             # 배틀 퀴즈 진행 
             if self.role == "player_1":
-                self.process_stage_palyer_1()
+                self.process_stage_player_1()
             elif self.role == "player_2": 
-                self.process_stage_palyer_2()
+                self.process_stage_player_2()
 
         
         # 배틀룸 퀴즈 진행 중 (퀴즈 답변 전송)
@@ -240,9 +240,9 @@ class BattleConsumer(JsonWebsocketConsumer):
             message_content = content_dict.get("message")
             
             if self.role == "player_1":
-                self.process_stage_palyer_1(message_content)
+                self.process_stage_player_1(message_content)
             elif self.role == "player_2": 
-                self.process_stage_palyer_2(message_content)
+                self.process_stage_player_2(message_content)
 
 
 
@@ -293,7 +293,7 @@ class BattleConsumer(JsonWebsocketConsumer):
     
     
     # 배틀 퀴즈 단계별 처리 함수
-    def process_stage_palyer_1(self, message_content=""):
+    def process_stage_player_1(self, message_content=""):
         send_message =  "" # 초기화
 
         if self.battle_room.now_stage_1 == "quiz_1": # quiz_1 (문제) 메세지 전송 
@@ -339,10 +339,10 @@ class BattleConsumer(JsonWebsocketConsumer):
         # 다음 리스트에 속하는 단계는 직접 호출 필요
         if self.battle_room.now_stage_1 in ["quiz_2", "quiz_3", "finish"]:
             time.sleep(2)  # 2초 동안 대기
-            self.process_stage_palyer_1()
+            self.process_stage_player_1()
         
 
-    def process_stage_palyer_2(self, message_content):   
+    def process_stage_player_2(self, message_content):   
         send_message =  "" # 초기화
 
         if self.battle_room.now_stage_2 == "quiz_1": # quiz_1 (문제) 메세지 전송 
@@ -389,7 +389,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         # 다음 리스트에 속하는 단계는 직접 호출 필요
         if self.battle_room.now_stage_2 in ["quiz_2", "quiz_3", "finish"]:
             time.sleep(2)  # 2초 동안 대기
-            self.process_stage_palyer_2()
+            self.process_stage_player_2()
 
 
 
