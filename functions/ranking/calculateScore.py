@@ -1,0 +1,1 @@
+# 배틀룸이랑 퀴즈룸에서 total_score 데리고 와서 ranking score 계산하는 기능
