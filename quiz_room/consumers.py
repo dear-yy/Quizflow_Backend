@@ -341,15 +341,13 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         
     def process_user_ans_3(self, message_content) -> Tuple[bool, str, str]: # 처리 실패 여부 반환
         descriptive_quiz = self.article.descriptive_quiz
-        fail, criteria, feedback, score = evaluate_descriptive_answer(message_content, descriptive_quiz.quiz_3, descriptive_quiz.quiz_3_ans) 
+        fail, feedback, score = evaluate_descriptive_answer(message_content, descriptive_quiz.quiz_3, descriptive_quiz.quiz_3_ans) 
         # 점수 반영 로직 추가
         if fail: # 채점 실패(json 변환 오류 문제)
             send_message = "채점 과정에서 에러가 발생하였습니다."
             return True, message_content, send_message
         else: # 채점 성공
-            criteria_str = json.dumps(criteria, ensure_ascii=False)
-            feedback_str = json.dumps(feedback, ensure_ascii=False)
-            send_message = criteria_str + "\n" + feedback_str
+            send_message = feedback
             self.quizroom.total_score += score # quizroom에 점수 반영
             return False, message_content, send_message
 

@@ -338,7 +338,7 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
             not article_body
             or len([s for s in article_body.split(".") if s.strip()]) <= 5
         ):
-            print(f"본문이 없는 아티클 (또는 본문이 5문장 이하)이르모 데이터를 추출할 수 없습니다.")
+            print(f"본문이 없는 아티클 (또는 본문이 5문장 이하)이므로 데이터를 추출할 수 없습니다.")
             recommend_article.drop(recommend_article.index[0], inplace=True)# recommend_article에서 삭제
             df.drop(df[df["Link"] == url].index, inplace=True) # df에서 삭제
             continue   # 새로운 아티클을 탐색을 위해 while 루프 재시작

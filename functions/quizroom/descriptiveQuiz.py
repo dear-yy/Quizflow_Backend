@@ -110,13 +110,6 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     ##최종 출력 형식:
     {{
       "total_score": 0,
-      "criteria": {{
-        "content_inclusion": "핵심 내용 포함에 대한 피드백",
-        "keyword_usage": "키워드 사용에 대한 피드백",
-        "objective_representation": "의도 왜곡에 대한 피드백",
-        "length_limit": "2문장 제한에 대한 피드백",
-        "fact_accuracy": "사실성 평가에 대한 피드백"
-      }},
       "feedback": {{
         "understanding_feedback": "사용자의 이해도에 대한 피드백",
         "improvement_feedback": "사용자가 개선할 점에 대한 피드백"
@@ -147,7 +140,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             # JSON 변환
             evaluation_result = json.loads(evaluation_result)
             # 결과 반환
-            return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+            return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
 
         except openai.error.RateLimitError:  
             print("Rate limit reached. Retrying in 40 seconds...")
@@ -170,16 +163,9 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
     # 처리 실패시 
     evaluation_result = {
         "total_score": 0,
-        "criteria": {
-            "content_inclusion": "JSON 변환 오류로 평가 실패",
-            "keyword_usage": "JSON 변환 오류로 평가 실패",
-            "objective_representation": "JSON 변환 오류로 평가 실패",
-            "length_limit": "JSON 변환 오류로 평가 실패",
-            "fact_accuracy": "JSON 변환 오류로 평가 실패"
-        },
         "feedback": {
             "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패",
             "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
         }
     }
-    return fail, evaluation_result["criteria"], evaluation_result["feedback"] , evaluation_result["total_score"]
+    return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
