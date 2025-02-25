@@ -271,8 +271,9 @@ class QuizroomConsumer(JsonWebsocketConsumer):
 
         # 메세지 형식 반환
         send_message_dic = {"url":self.article.url, "title":self.article.title, "reason":self.article.reason}
-        send_message = f"{send_message_dic}" # 메세지 형식은 나중에 수정하기 # 테스트
-
+        
+        # JSON 문자열 변환 및 따옴표 이스케이프 처리
+        send_message = json.dumps(send_message_dic, ensure_ascii=False) # 대체 코드 # send_message = f"{send_message_dic}" 
         return False, send_message
     
 
