@@ -19,14 +19,14 @@ class BattleroomListSerializer(serializers.ModelSerializer):
             'start_date',
             'end_date_1',
             'end_date_2',
-            'is_ended'  # 종료 여부
+            'is_ended'  # 종료 여부 
         ]
 
 
 class NewBattleroomSerializer(serializers.ModelSerializer):
     # player_1과 player_2를 ProfileSerializer를 사용하여 직렬화
-    player_1 = ProfileSerializer(source="player_1.profile", read_only=True) # player_1(User 객체)에서 Profile 모델
-    player_2 = ProfileSerializer(source="player_2.profile", read_only=True) # player_2(User 객체)에서 Profile 모델
+    # player_1 = ProfileSerializer(source="player_1.profile", read_only=True) # player_1(User 객체)에서 Profile 모델
+    # player_2 = ProfileSerializer(source="player_2.profile", read_only=True) # player_2(User 객체)에서 Profile 모델
     
     class Meta:
         model = Battleroom
