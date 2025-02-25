@@ -29,10 +29,12 @@ class QuizroomMessageInline(admin.TabularInline):
 # Article 관리자 설정 (MultipleChoiceQuiz, DescriptiveQuiz 인라인 포함)
 class ArticleAdmin(admin.ModelAdmin):
     inlines = [MultipleChoiceQuizInline, DescriptiveQuizInline]
+    list_display = ('id', 'user', 'title')
     
 # Quizroom 관리자 설정 (Article, QuizroomMessage 인라인 포함)
 class QuizroomAdmin(admin.ModelAdmin):
     inlines = [ArticleInline, QuizroomMessageInline]
+    list_display = ('id', 'user', 'start_date', 'update_date', 'end_date')
 
 # 관리자 페이지에 모델 등록
 admin.site.register(Quizroom, QuizroomAdmin)
