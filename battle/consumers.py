@@ -72,6 +72,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
                     return   
             else:
                 print("잘못된 플레이어 역할입니다. 역할 설정 오류가 발생하여 연결을 중단합니다.")
+                print("palyer_1: ", self.player_role_1,"player_2" , self.player_2, "현재 플레이어", player_role)
                 self.close()
                 return
             
@@ -388,8 +389,12 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.battle_room.now_stage_2 = "end"
            
 
-        if self.battle_room.now_stage_2 == "end" and self.battle_room.end_date_1 is not None: # 플레이어 1은 이미 끝난 상태라면
+        if self.battle_room.now_stage_2 == "end" and self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
             self.battle_room.is_ended = True
+        # else: # 현재 플레이어가 배틀은 먼저 끝냄 
+        #     # 상대 플레이어 종료까지 대기 요청 
+        
+
 
         self.battle_room.save()
         self.send_json({"message":send_message , "is_gpt": True})

@@ -231,7 +231,7 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
         site_query = f"site:{site} {query}"     # 각 사이트 별 검색어 구성
         collected_results_cnt = 0               # 현재 사이트에서 수집한 결과 수
         start_index = 1                         # 검색 결과에서 탐색 시작할 위치를 지정
-        num = 10                                # 한 번에 반환할 검색 결과의 수
+        num = 5                                 # 한 번에 반환할 검색 결과의 수
         # Google Custom Search API에 대한 요청 URL 생성
         url = f"https://www.googleapis.com/customsearch/v1?key={GOOGLE_API_KEY}&cx={GOOGLE_SEARCH_ENGINE_ID}&q={site_query}&start={start_index}&num={num}" 
             
