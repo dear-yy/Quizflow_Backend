@@ -72,7 +72,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
                     return   
             else:
                 print("잘못된 플레이어 역할입니다. 역할 설정 오류가 발생하여 연결을 중단합니다.")
-                print("palyer_1: ", self.player_role_1,"player_2" , self.player_2, "현재 플레이어", player_role)
+                print("palyer_1: ", self.player_1,"player_2" , self.player_2, "현재 플레이어", player_role)
                 self.close()
                 return
             
