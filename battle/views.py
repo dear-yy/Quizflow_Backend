@@ -5,9 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from .serializers import BattleroomListSerializer, NewBattleroomSerializer
 from .models import Battleroom
 from django.contrib.auth.models import User
+
 
 class MatchBattleViewAPI(APIView):
     """
@@ -125,7 +127,7 @@ class CancelMatchViewAPI(APIView):
 
 class BattleroomListViewAPI(APIView):
     """
-    배틀룸 종료 내역 조회
+    배틀룸 종료 내역 조회 API
     """
     permission_classes = [IsAuthenticated]
 
@@ -140,7 +142,7 @@ class BattleroomListViewAPI(APIView):
 
 class NewBattleroomViewAPI(APIView):
     """
-    새로운 배틀룸 조회(웹소켓 연결을 위한 정보 반환)
+    새로운 배틀룸 조회 API (웹소켓 연결을 위한 정보 반환)
     """
     permission_classes = [IsAuthenticated]
 

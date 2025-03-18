@@ -1,107 +1,122 @@
 # battle.consumers.py 
+
 import time
-# 웹소켓 클라이언트와 텍스트 데이터 송수신 시에 Json 직렬화&역직렬화까지 모두 처리 
-from channels.generic.websocket import JsonWebsocketConsumer
-from django.contrib.auth.models import User
-from rest_framework.authtoken.models import Token
-from .models import Battleroom, BattleArticle, BattleQuiz
-from functions.battle.selectBattleArticle import extract_keywords, select_article # 랜덤 키워드 생성 & 아티클 반환
-from functions.battle.summarization import summarize_article  # 요약 기능
-from functions.battle.battleQuiz import generate_quiz_set, check_answer, evaluate_descriptive_answer
-from django.utils.timezone import now # 종료 시간 활성화
 import json
+from django.utils.timezone import now # 시간 활성화
+from channels.generic.websocket import JsonWebsocketConsumer # Json 직렬화&역직렬화
+from rest_framework.authtoken.models import Token
+# 모델
+from django.contrib.auth.models import User
+from .models import Battleroom, BattleArticle, BattleQuiz
+# 기능
+from functions.battle.selectBattleArticle import extract_keywords, select_article 
+from functions.battle.summarization import summarize_article
+from functions.battle.battleQuiz import generate_quiz_cycle, check_answer, evaluate_descriptive_answer
+
 
 
 '''
-[사용자 전송 메세지 형식]
-    시작 메세지 
-    {"type":"auth", "token":"token", "player_role": "player_n"}
+## 배틀 설정 ##
+    퀴즈 & 아티클 생성
+
+[클라이언트 -> 서버]
+    인증 요청
+    {"type":"auth", "token":"token"}
+
+[서버 -> 클라이언트]
+    진행 상황 보고 
+    {"type":"system", "message":"message"}
+    에러 보고
+    {"type":"fail", "message":"message"}
 '''
-# 배틀 설정 (퀴즈 & 아티클 생성)
+
 class BattleSetupConsumer(JsonWebsocketConsumer):
     def connect(self):
-        print("연결 중입니다.")
+        print("연결 중입니다.") # 디버깅
         self.player_1 = None  
         self.player_2 = None  
-        self.battle_room = None  # 배틀룸 초기화
+        self.battle_room = None  
         self.article = None
         self.accept()
 
+
     def disconnect(self, close_code):
-        print("연결을 중단합니다.")
+        print("연결을 중단합니다.") # 디버깅깅
         self.player_1 = None  
         self.player_2 = None  
-        self.battle_room = None  # 배틀룸 초기화
+        self.battle_room = None  
 
 
-    def receive_json(self, content_dict, **kwargs): # 사용자 토큰 인증
-        type = content_dict.get("type") # 인증 수행하고자 하는지 파악
-        player_role = content_dict.get("player_role")  # "player_1" 또는 "player_2"
+    def receive_json(self, content_dict, **kwargs):
+        self.get_battleroom_id() # 배틀룸 id 조회
+        type = content_dict.get("type") # 메세지 유형 파악(인증)
 
-        if (self.player_1 is None or self.player_2 is None) and type=="auth": # 사용자 인증 전 상태
-            # 토큰 인증
-            token = content_dict.get("token")  # 클라이언트에서 보낸 토큰
+        # 두 사용자 인증 수행행
+        if (self.player_1 is None or self.player_2 is None) and type=="auth": 
+            # 1. 토큰 인증
+            token = content_dict.get("token") 
             if not token:
-                print("토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요.")
-                # self.close()
+                self.send_message("fail", "토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요.")
+                print("토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요.") # 디버깅
                 return 
             
-            try:
-                user = Token.objects.get(key=token).user  # 토큰으로 사용자 인증
+            try: # 토큰으로 사용자 인증 & 사용자 정보 반환
+                user = Token.objects.get(key=token).user  
             except Token.DoesNotExist:
+                self.send_message("fail", "유효하지 않은 토큰이므로, 연결을 중단합니다.")
                 print('유효하지 않은 토큰이므로, 연결을 중단합니다.')
                 self.close()
                 return
             
-            # 플레이어 역할에 따라 사용자 지정
-            if player_role == "player_1":
+            # 2. 플레이어 역할에 따라 사용자 지정
+            if user.id == self.battle_room.player_1.id:
                 if self.player_1 is None:
                     self.player_1 = user
-                    print(f"{user}님이 player_1로 입장하였습니다.")
-                elif self.player_1 != user:
-                    print("이미 다른 플레이어 1이 설정되어 있습니다. 역할 설정 오류가 발생하여 연결을 중단합니다.")
-                    self.close()
-                    return
-            elif player_role == "player_2":
+                    self.send_message("system", f"{user}님이 player_1로 입장하였습니다.")
+                    print(f"{user}님이 player_1로 입장하였습니다.") # 디버깅
+                else:
+                    self.send_message("fail", "설정 완료된 플레이어입니다.")
+                    print("설정 완료된 플레이어입니다.") # 디버깅
+            elif user.id == self.battle_room.player_2.id:
                 if self.player_2 is None:
                     self.player_2 = user
-                    print(f"{user}님이 player_2로 입장하였습니다.")
-                elif self.player_2 != user:
-                    print("이미 다른 플레이어 2가 설정되어 있습니다. 역할 설정 오류가 발생하여 연결을 중단합니다.")
-                    self.close()
-                    return   
+                    self.send_message("system", f"{user}님이 player_2로 입장하였습니다.")
+                    print(f"{user}님이 player_2로 입장하였습니다.") # 디버깅
+                else:
+                   self.send_message("fail", "설정 완료된 플레이어입니다.")
+                   print("설정 완료된 플레이어입니다.") # 디버깅
             else:
-                print("잘못된 플레이어 역할입니다. 역할 설정 오류가 발생하여 연결을 중단합니다.")
-                print("player_1: ", self.player_1,"player_2" , self.player_2, "현재 플레이어", player_role)
+                self.send_message("fail","존재하지 않은 플레이어입니다. 승인되지 않은 사용자 접근이 발생하여 연결을 중단합니다.")
+                print("존재하지 않은 플레이어입니다. 승인되지 않은 사용자 접근이 발생하여 연결을 중단합니다.") # 디버깅
+                # 예외 처리 구현(해당 배틀룸 삭제)
+                print("player_1: ", self.player_1,"player_2" , self.player_2, "현재 플레이어", user) # 디버깅
                 self.close()
                 return
             
-            # 두 명의 플레이어가 설정되었는지 확인
+            # 두 명의 플레이어 모두 설정 완료
             if self.player_1 and self.player_2:
                 self.setup_battle()  # 배틀룸 설정 시작
 
-    def setup_battle(self):
-        """ 두 명의 플레이어가 모두 인증되면 배틀룸을 조회하고 설정 """
+
+    def get_battleroom_id(self):
         battle_room_id = self.scope["url_route"]["kwargs"]["battle_room_id"]
         
         try:
             self.battle_room = Battleroom.objects.get(pk=battle_room_id)
-            # 설정 완료 메시지 전송
-            print(f"배틀룸 {battle_room_id}의 아티클과 퀴즈를 생성중 입니다. 기다려주세요.")
-            self.send_json({
-                "type": "system",
-                "message": "아티클을 반환중 입니다. 기다려주세요.",
-            })
-            
         except Battleroom.DoesNotExist:
-            print("배틀룸을 찾을 수 없습니다. 연결 종료.")
-            self.send_json({
-                "type": "system",
-                "message": "배틀룸을 찾을 수 없어 연결 종료합니다.",
-            })
+            self.send_message("fail", "배틀룸을 찾을 수 없어 연결을 종료합니다.")
+            print("배틀룸을 조회 실패. 연결 종료.") # 디버깅
             self.close()
             return
         
+        
+    def setup_battle(self):
+        """ 두 명의 플레이어가 모두 인증되면 배틀룸 설정 """
+
+        # 상황 보고 메시지 전송
+        self.send_message("system",  "아티클을 반환중 입니다. 잠시만 기다려주세요.") 
+        print("아티클과 퀴즈를 생성중") # 디버깅
+
         # 아티클 생성
         self.createBattleArticle()
 
@@ -109,72 +124,70 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         self.createBattleQuiz()
         
         # 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
-        print("배틀 설정이 완료") # 디버깅
         self.battle_room.start_date = now()
-        self.send_json({
-            "type": "system",
-            "message": "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작하세요!"
-        })
+        self.send_message("system", "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작해 보세요!")
+        print("배틀 설정 완료") # 디버깅
+
 
     def createBattleArticle(self):
-        """ 아티클을 생성하는 로직 """
-        # 랜덤 키워드 반환
+        # 1. 랜덤 키워드 반환
         query = extract_keywords()
-
-        # 아티클 반환
+        # 2. 아티클 반환
         recommended_article = select_article(self.player_1, self.player_2,  query)
-        
-        # 아티클 본문 요약
+        # 3. 아티클 본문 요약
         recommended_article['body'] = summarize_article(recommended_article['body'])
-
-        # 아티클 생성 및 Room 연결
+        # 4. 아티클 정보 DB 저장 및 Room 연결
         self.article = BattleArticle.objects.create(
             battleroom=self.battle_room,
             title=recommended_article['title'],
             body=recommended_article['body'],
             url=recommended_article['url']
         )
+
     
     def createBattleQuiz(self):
-        """ 퀴즈 생성하는 로직"""
-        # 생성 및 DB 저장 로직 추가 가능
+        # 1. 아티클 존재 여부 확인
         if not self.article:
-            print("아티클이 설정되지 않았습니다. 퀴즈를 생성할 수 없습니다.")
+            self.send_message("fail", "아티클이 설정되지 않았습니다. 퀴즈를 생성할 수 없습니다.")
+            print("아티클이 설정되지 않았습니다. 퀴즈를 생성할 수 없습니다.") # 디버깅
+            # 예외 처리 구현
             return
-        print("아티클 기반 퀴즈를 생성 중...")
+        self.send_message("system", "아티클 기반 퀴즈를 생성 중...")
+        print("아티클 기반 퀴즈를 생성 중...") # 디버깅
 
-        # (객관식 퀴즈 + 서술형 퀴즈)를 한 번에 생성
-        quiz_set = generate_quiz_set(self.article.body) # 딕셔너리 형태 반환
+        # 2. 퀴즈 한 사이클 생성
+        quiz_cycle = generate_quiz_cycle(self.article.body) # dict 형태 반환
 
-        # 생성된 퀴즈 세트 생성 여부 파악 
-        if not quiz_set:
-            print("퀴즈 세트를 생성하는데 실패했습니다.")
+        # 3. 생성된 퀴즈 세트 생성 여부 파악 
+        if not quiz_cycle:
+            self.send_message("fail", "퀴즈 세트를 생성하는데 실패했습니다.")
+            print("퀴즈 세트를 생성하는데 실패했습니다.") # 디버깅
+            # 예외 처리 구현 
             return
-        
-        quiz_1 = quiz_set["multiple_choice_1"]["quiz"]
-        quiz_1_ans = quiz_set["multiple_choice_1"]["answer"]
 
-        quiz_2 = quiz_set["multiple_choice_2"]["quiz"]
-        quiz_2_ans = quiz_set["multiple_choice_2"]["answer"]
-
-        quiz_3 = quiz_set["descriptive"]["quiz"]
-        quiz_3_ans = quiz_set["descriptive"]["answer"]
-
-        # 퀴즈 DB 저장
+        # 4. 생성 퀴즈 DB 저장
         BattleQuiz.objects.create(
             battleroom = self.battle_room, 
             battle_article = self.article,
-            quiz_1 = quiz_1,
-            quiz_1_ans = quiz_1_ans,
-            quiz_2 = quiz_2,
-            quiz_2_ans = quiz_2_ans,
-            quiz_3 = quiz_3,
-            quiz_3_ans = quiz_3_ans
+            quiz_1 = quiz_cycle["multiple_choice_1"]["quiz"],
+            quiz_1_ans = quiz_cycle["multiple_choice_1"]["answer"],
+            quiz_2 = quiz_cycle["multiple_choice_2"]["quiz"],
+            quiz_2_ans = quiz_cycle["multiple_choice_2"]["answer"],
+            quiz_3 = quiz_cycle["descriptive"]["quiz"],
+            quiz_3_ans = quiz_cycle["descriptive"]["answer"]
         )
+    
+    def send_message(self, type, message):
+        self.send_json({
+            "type": type,
+            "message": message
+        })
 
 
     
 '''
+## 개별 퀴즈 진행 ##
+
 [사용자 전송 메세지 형식]
     시작 메세지 
     {"type":"auth", "player_role": "player_n"}
@@ -182,7 +195,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
     퀴즈 메세지 
     {"type":"user", "message":"quiz_ans"}
 '''
-# 개별 퀴즈 진행 # 반환값 형식 에러 수정하기
+# 반환값 형식 에러 수정하기
 class BattleConsumer(JsonWebsocketConsumer):
     def connect(self):
         print("연결 중입니다.")

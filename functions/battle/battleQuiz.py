@@ -13,7 +13,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myquiz.settings')
 # 키 설정 
 openai.api_key = settings.OPENAI_API_KEY 
 
-def generate_quiz_set(article_summary) -> Dict:
+def generate_quiz_cycle(article_summary) -> Dict:
     # 객관식 퀴즈 생성 
     quiz_1, ans_1 = generate_multiple_choice_quiz_with_check(article_summary, previous_quiz=None)
     quiz_2, ans_2 = generate_multiple_choice_quiz_with_check(article_summary, previous_quiz=quiz_1)
