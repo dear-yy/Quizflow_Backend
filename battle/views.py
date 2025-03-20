@@ -1,6 +1,7 @@
 # battle/views.py
 from datetime import datetime # end_date 설정
 from django.utils import timezone
+from django.db.models import Q
 from django_redis import get_redis_connection # 장고와 레디스 연결
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -24,6 +25,21 @@ class MatchBattleViewAPI(APIView):
 
     # 현재 사용자 대기열(queue)에 추가
     def post(self, request):
+        # 일일 배틀 제한 확인 
+        user = request.user # 로그인한 사용자 가져옴
+        today = timezone.now().date()  # 오늘 날짜 (연-월-일)
+        # player_1 또는 player_2로 '오늘' 등록된 배틀룸 개수 카운트
+        battle_generate_cnt = Battleroom.objects.filter(
+            Q(player_1=user) | Q(player_2=user),  
+            start_date__date=today
+        ).count()
+
+        print("생성 카운팅", battle_generate_cnt)
+
+        if battle_generate_cnt >= 1:
+            return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
+    
+
         # Redis에서 대기열(Queue) 가져오기
         r = get_redis_connection("default") # djagno를 Redis 서버에 연결하고, 그 연결을 통해 대기열(Queue)에 접근
         user_id = request.user.id  # 로그인한 사용자의 ID를 가져옴
