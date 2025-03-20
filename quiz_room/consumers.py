@@ -326,7 +326,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             self.quizroom.total_score += score # quizroom에 점수 반영
             return False, message_content, send_message
          
-    # # 3번_서술형 
+    # 3번_서술형 
     def process_quiz_3(self) -> Tuple[bool, str]: # 처리 실패 여부 반환
         quiz_3, ans_3 = generate_descriptive_quiz(self.article.body)
         quiz = DescriptiveQuiz.objects.create(

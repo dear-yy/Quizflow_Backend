@@ -1,4 +1,5 @@
 # battle/views.py
+from datetime import datetime # end_date 설정
 from django.utils import timezone
 from django_redis import get_redis_connection # 장고와 레디스 연결
 from rest_framework.permissions import IsAuthenticated
@@ -158,3 +159,42 @@ class NewBattleroomViewAPI(APIView):
             return Response({"message": "아직 매칭이 완료되지 않아 배틀룸이 생성되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         
+
+# 배틀룸 나가기
+class DisconnectViewAPI(APIView): 
+    """
+    배틀룸 종료 API
+    """
+    permission_classes = [IsAuthenticated]
+
+    # 데이터 일부 수정 patch 요청으로 처리 
+    def patch(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
+        user_id = request.user.id  # 로그인한 사용자 가져오기
+        end_date = request.data.get("end_date")  # "2025-03-18 13:25:29" 형태
+
+        # 데이터 누락 확인
+        if not battleroom_id or not end_date or not user_id:
+            return Response({"error": "battle_id, user_id, end_date 데이터 누락"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        battleroom = Battleroom.objects.filter(pk=battleroom_id).first() #  first()를 통해 단일 객체 가져오기
+        if not battleroom:
+            return Response({"error": "존재하지 않은 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        else:     
+            # 포맷팅
+            try:
+                end_date = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return Response({"error": "date형식 오류"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if battleroom.player_1.id==user_id:
+                # print("player1")
+                battleroom.end_date_1 = end_date
+                battleroom.now_stage_1 = "end"
+            elif battleroom.player_2.id==user_id:
+                battleroom.end_date_2 = end_date
+                battleroom.now_stage_2 = "end"
+            else:
+                return Response({"error": "사용자 조회 오류"}, status=status.HTTP_400_BAD_REQUEST)  
+            
+            battleroom.save()
+            return Response({"message": "end_date 설정 완료"}, status=status.HTTP_200_OK)

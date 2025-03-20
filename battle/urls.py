@@ -1,7 +1,7 @@
 # battle.urls.py
 
 from django.urls import path
-from .views import MatchBattleViewAPI, CancelMatchViewAPI, BattleroomListViewAPI, NewBattleroomViewAPI
+from .views import MatchBattleViewAPI, CancelMatchViewAPI, BattleroomListViewAPI, NewBattleroomViewAPI, DisconnectViewAPI
 
 urlpatterns = [
     # 배틀 매칭 대기 & 배틀룸 생성
@@ -15,4 +15,8 @@ urlpatterns = [
 
     # 배틀 대기열 나가기
     path('match/cancel/', CancelMatchViewAPI.as_view(), name='battle_match_cancel'),
+
+    # 배틀룸 나가기
+    path('<int:battleroom_id>/disconnect/', DisconnectViewAPI.as_view(), name='battleroom_disconnect'),
+
 ]
