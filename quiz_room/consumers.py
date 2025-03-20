@@ -4,6 +4,7 @@
 from channels.generic.websocket import JsonWebsocketConsumer
 # import openai
 from typing import Tuple
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from django.utils.timezone import now
 from django.contrib.auth.models import User
@@ -69,17 +70,28 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             elif self.quizroom.cnt == 3:
                 self.finish_quiz()
             
-            # 4. 퀴즈 진행 상태&아티클 복원
+            # 4. 퀴즈 수정 제한 검사 
+            today = timezone.now().date()  # 오늘 날짜 (연-월-일)
+                # 사용자의 '오늘' 수정된 퀴즈룸 개수 카운트
+            quiz_update_cnt = Quizroom.objects.filter(user=self.user, update_date__date=today).count()
+            print("수정된 퀴즈 카운트", quiz_update_cnt) # 디버깅
+
+            if quiz_update_cnt>=3 and self.quizroom.update_date.date()!=today:
+                self.send_json({"error": "일일 제한 초과"})
+                self.close()
+                return
+        
+            # 5. 퀴즈 진행 상태&아티클 복원
             self.now_stage = self.quizroom.now_stage
             self.article = self.quizroom.articles.order_by("-timestamp").first() # 현재 quizroom에서 최근에 추가된 아티클 반환
             latest_message = QuizroomMessage.objects.filter(quizroom=self.quizroom).order_by('-timestamp').first() # 최근 메세지 반환(존재 여부파악을 위함)
             print(f'{self.now_stage}부터 시작합니다.')
 
-            # 5. 퀴즈 진행(gpt 답변 단계에서 중단된 경우)
+            # 6. 퀴즈 진행(gpt 답변 단계에서 중단된 경우)
             if self.now_stage in ["article", "quiz_1", "quiz_2", "quiz_3"]:
                 self.process_stage(None)
 
-            # 6. 퀴즈룸 최초 실행인 경우
+            # 7. 퀴즈룸 최초 실행인 경우
             if self.now_stage in ["feedback"] and self.quizroom.cnt == 0:
                 send_message =  f"{self.user}님 안녕하세요!\n🔍 어떤 주제에 대해 학습하고 싶으신가요? 입력해주시면 관련된 퀴즈로 안내드릴게요!\n" # 사용자 프로필 명으로 변경하기~!
                 if latest_message==None: # 퀴즈룸에 연결후 최초 메세지 존재하지 않으면(최초 피드백 요청 메세지 중복 방지)
@@ -118,7 +130,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         fail = True # 처리 성공하면 False로 
         receive_message = None  # 사용자(클라이언트 -> 서버)
         send_message = None     # gpt (서버 -> 클라이언트) 
-
+        
         if self.quizroom.cnt < 3: # 퀴즈 진행중
             if self.now_stage == "feedback":
                 fail, receive_message = self.process_feedback(message_content)

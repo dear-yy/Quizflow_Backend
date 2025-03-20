@@ -34,7 +34,7 @@ class MatchBattleViewAPI(APIView):
             start_date__date=today
         ).count()
 
-        print("생성 카운팅", battle_generate_cnt)
+        # print("생성 카운팅", battle_generate_cnt) # 디버깅
 
         if battle_generate_cnt >= 1:
             return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)

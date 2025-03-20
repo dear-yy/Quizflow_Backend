@@ -4,7 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db.models import Q
 from .models import Quizroom
 from .serializers import QuizroomCreateSerializer, QuizroomListSerializer, MessageListSerializer
 
@@ -28,8 +27,9 @@ class QuizroomsViewAPI(APIView):
         today = timezone.now().date()  # 오늘 날짜 (연-월-일)
 
         # 사용자의 '오늘' 등록된 퀴즈룸 개수 카운트
-        quiz_generate_cnt = Quizroom.objects.filter(user=user, start_date__date=today).count()
-        print("생성 퀴즈 카운트", quiz_generate_cnt)
+        quiz_generate_cnt = Quizroom.objects.filter(user=user, update_date__date=today).count()
+        # print("생성 퀴즈 카운트", quiz_generate_cnt) # 디버깅
+
         if quiz_generate_cnt >= 3:
             return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
         
