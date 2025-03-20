@@ -32,3 +32,19 @@ class NewBattleroomSerializer(serializers.ModelSerializer):
             'player_1',
             'player_2'
         ]
+
+class BattleResultSerializer(serializers.ModelSerializer):
+    player_1 = ProfileSerializer(source="player_1.profile", read_only=True) # player_1(User 객체)에서 Profile 모델
+    player_2 = ProfileSerializer(source="player_2.profile", read_only=True) # player_2(User 객체)에서 Profile 모델
+
+    class Meta:
+        model = Battleroom
+        fields = [
+            'player_1',
+            'player_2',
+            'total_score_1',
+            'total_score_2',
+            'start_date',
+            'end_date_1',
+            'end_date_2'
+        ]

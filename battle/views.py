@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import BattleroomListSerializer, NewBattleroomSerializer
+from .serializers import BattleroomListSerializer, NewBattleroomSerializer, BattleResultSerializer
 from .models import Battleroom
 from django.contrib.auth.models import User
 
@@ -160,8 +160,7 @@ class NewBattleroomViewAPI(APIView):
         
         
 
-# 배틀룸 나가기
-class DisconnectViewAPI(APIView): 
+class BattleroomDisconnectViewAPI(APIView): 
     """
     배틀룸 종료 API
     """
@@ -187,14 +186,35 @@ class DisconnectViewAPI(APIView):
                 return Response({"error": "date형식 오류"}, status=status.HTTP_400_BAD_REQUEST)
             
             if battleroom.player_1.id==user_id:
-                # print("player1")
                 battleroom.end_date_1 = end_date
                 battleroom.now_stage_1 = "end"
             elif battleroom.player_2.id==user_id:
                 battleroom.end_date_2 = end_date
                 battleroom.now_stage_2 = "end"
             else:
-                return Response({"error": "사용자 조회 오류"}, status=status.HTTP_400_BAD_REQUEST)  
+                return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
             
             battleroom.save()
             return Response({"message": "end_date 설정 완료"}, status=status.HTTP_200_OK)
+
+class BattleroomResultViewAPI(APIView): 
+    """
+    배틀룸 결과 조회 API
+    """
+    permission_classes = [IsAuthenticated]
+
+    # 데이터 일부 수정 patch 요청으로 처리 
+    def get(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
+        user_id = request.user.id  # 로그인한 사용자
+        battleroom = Battleroom.objects.filter(pk=battleroom_id, is_ended=True).first() #  first()를 통해 단일 객체
+
+        if not battleroom:
+            return Response({"error": "존재하지 않거나 진행중인 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        else:     
+            # 해당 사용자의 접근 가능 여부 파악
+            if battleroom.player_1.id==user_id or battleroom.player_2.id==user_id: 
+                serializer = BattleResultSerializer(battleroom)
+                # 반환 데이터 형식 수정 
+                return Response(serializer.data, status=status.HTTP_200_OK) 
+            else:
+                return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST) 
