@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import BattleroomListSerializer, NewBattleroomSerializer, BattleResultSerializer
+from .serializers import BattleroomListSerializer, NewBattleroomSerializer
 from .models import Battleroom
 from django.contrib.auth.models import User
 
@@ -206,15 +206,38 @@ class BattleroomResultViewAPI(APIView):
     # 데이터 일부 수정 patch 요청으로 처리 
     def get(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
         user_id = request.user.id  # 로그인한 사용자
-        battleroom = Battleroom.objects.filter(pk=battleroom_id, is_ended=True).first() #  first()를 통해 단일 객체
+        battleroom = Battleroom.objects.filter(pk=battleroom_id).first() #  first()를 통해 단일 객체
 
         if not battleroom:
             return Response({"error": "존재하지 않거나 진행중인 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
         else:     
+            player_1_info = {"is_ended":bool(battleroom.end_date_1) , "nickname":battleroom.player_1.profile.nickname, "status":self.evaluate_match(battleroom, 1), "score":battleroom.total_score_1}
+            player_2_info = {"is_ended":bool(battleroom.end_date_2), "nickname":battleroom.player_2.profile.nickname, "status":self.evaluate_match(battleroom, 2), "score":battleroom.total_score_2}
+
             # 해당 사용자의 접근 가능 여부 파악
-            if battleroom.player_1.id==user_id or battleroom.player_2.id==user_id: 
-                serializer = BattleResultSerializer(battleroom)
-                # 반환 데이터 형식 수정 
-                return Response(serializer.data, status=status.HTTP_200_OK) 
+            if battleroom.player_1.id==user_id:
+                return Response({"player_1":player_1_info, "player_2":player_2_info, "my_role":1}, status=status.HTTP_200_OK) 
+            elif battleroom.player_2.id==user_id: 
+                return Response({"player_1":player_1_info, "player_2":player_2_info, "my_role":2}, status=status.HTTP_200_OK) 
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST) 
+            
+    def evaluate_match(self, battleroom, role):
+        result = 0
+        if battleroom.total_score_1 > battleroom.total_score_2: # 1번 플레이어 승 
+            result = 1
+        elif battleroom.total_score_1 < battleroom.total_score_2: # 2번 플레이어 승 
+            result = 2
+        elif battleroom.total_score_1 == battleroom.total_score_2: 
+            # 시간 고려
+            if battleroom.end_date_1 < battleroom.end_date_2: # 1번 플레이어 승 
+                result = 1
+            elif battleroom.end_date_1 > battleroom.end_date_2: # 2번 플레이어 승 
+                result = 2
+
+        if result == 1:
+            return "win" if role == 1 else "lose"
+        elif result == 2:
+            return "win" if role == 2 else "lose"
+        elif result == 0: 
+            return "draw"

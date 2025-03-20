@@ -344,10 +344,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_1()
         elif self.battle_room.now_stage_1 == "end": # 배틀룸 종료 상태 확인
             if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"", "player_1": True, "player_2":True, "role":"player_1"}
+                message_content = {"message":"", "player_1": True, "player_2":True, "my_role":1}
                 self.battle_room.is_ended = True
             else: # 현재 플레이어가 배틀은 먼저 끝냄
-                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "role":"player_1"}
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
             self.close()
         
@@ -402,10 +402,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_2()
         elif self.battle_room.now_stage_2 == "end": # 배틀룸 종료 상태 확인
             if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"", "player_1": True, "player_2":True, "role":"player_2"}
+                message_content = {"message":"", "player_1": True, "player_2":True, "my_role":2}
                 self.battle_room.is_ended = True
             else: # 현재 플레이어가 배틀은 먼저 끝냄 
-                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "role":"player_2"}  
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2}  
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
             self.close()
 
