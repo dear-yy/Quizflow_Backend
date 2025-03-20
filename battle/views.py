@@ -31,7 +31,7 @@ class MatchBattleViewAPI(APIView):
         # 대기열에서 해당 사용자가 이미 존재하는지 확인
         queue = r.lrange("battle_queue", 0, -1)  # 대기열에 있는 모든 사용자 ID를 가져옴
         if str(user_id).encode('utf-8') in queue:  # Redis는 바이트 배열로 저장되므로, 비교할 때 인코딩을 맞춰야 함
-            return Response({"message": "이미 대기열에 사용자가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "이미 대기열에 사용자가 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 대기열에 사용자를 추가
         r.rpush("battle_queue", user_id)  # user.id를 저장함
@@ -103,7 +103,7 @@ class CancelMatchViewAPI(APIView):
         if self.remove_from_queue(user_id): 
             return Response({"message": "배틀 대기열에서 성공적으로 나가셨습니다"}, status=status.HTTP_200_OK)
         else:
-            return Response({"message": "대기열에 존재하지 않는 사용자입니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "대기열에 존재하지 않는 사용자입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
     def remove_from_queue(self, user_id):
         r = get_redis_connection("default")
@@ -156,7 +156,7 @@ class NewBattleroomViewAPI(APIView):
             serializer = NewBattleroomSerializer(battleroom, many=True) # 직렬화 # many=True로 설정했지만, 배틀룸 무조건 1개 이하로 관리할 거임
             return Response(serializer.data, status=status.HTTP_200_OK)
         else: 
-            return Response({"message": "아직 매칭이 완료되지 않아 배틀룸이 생성되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "아직 매칭이 완료되지 않아 배틀룸이 생성되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         
 
