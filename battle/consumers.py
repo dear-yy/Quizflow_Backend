@@ -29,72 +29,90 @@ from functions.battle.battleQuiz import generate_quiz_cycle, check_answer, evalu
     에러 보고
     {"type":"fail", "message":"message"}
 '''
-
+ 
 class BattleSetupConsumer(JsonWebsocketConsumer):
     def connect(self):
         print("연결 중입니다.") # 디버깅
-        self.player_1 = None  
-        self.player_2 = None  
         self.battle_room = None  
         self.article = None
+        self.myrole = None
+
+        # 배틀룸 조회 및 connected_users 증가
+        self.get_battleroom_id()
+
+        # 그룹 추가 (같은 battle_room_id를 가진 사용자끼리 그룹화)
+        self.group_name = f"battleroom_{self.battle_room.id}"
+        self.channel_layer.group_add(self.group_name, self.channel_name)
+
         self.accept()
 
 
     def disconnect(self, close_code):
         print("연결을 중단합니다.") # 디버깅
-        self.player_1 = None  
-        self.player_2 = None  
+        
+        # # 배틀룸 퇴장 로직 -> view에 disconnecet API에 추가하기
+        # if self.battle_room: 
+        #     if self.myrole == 1:
+        #         self.battle_room.player_1_connected = False
+        #     elif self.myrole == 2:
+        #         self.battle_room.player_2_connected = False
+        #     self.battle_room.save()
         self.battle_room = None  
+
+        # 그룹에서 제거
+        self.channel_layer.group_discard(self.group_name, self.channel_name)
 
 
     def receive_json(self, content_dict, **kwargs):
-        self.get_battleroom_id() # 배틀룸 id 조회
+        # self.get_battleroom_id() # 배틀룸 id 조회
         type = content_dict.get("type") # 메세지 유형 파악(인증)
 
         # 두 사용자 인증 수행
-        if (self.player_1 is None or self.player_2 is None) and type=="auth": 
+        if ((self.battle_room.player_2_connected is False) or (self.battle_room.player_2_connected is False)) and type=="auth": 
             # 1. 토큰 인증
             token = content_dict.get("token") 
             if not token:
-                self.send_message("fail", "토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요.")
+                self.send_json({"type":"fail", "message":"토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요."})
                 print("토큰이 제공되지 않았습니다. 정상적으로 토큰을 인증해주세요.") # 디버깅
                 return 
             
             try: # 토큰으로 사용자 인증 & 사용자 정보 반환
                 user = Token.objects.get(key=token).user  
             except Token.DoesNotExist:
-                self.send_message("fail", "유효하지 않은 토큰이므로, 연결을 중단합니다.")
+                self.send_json({"type":"fail", "message":"유효하지 않은 토큰이므로, 연결을 중단합니다."})
                 print('유효하지 않은 토큰이므로, 연결을 중단합니다.')
                 self.close()
                 return
             
             # 2. 플레이어 역할에 따라 사용자 지정
             if user.id == self.battle_room.player_1.id:
-                if self.player_1 is None:
-                    self.player_1 = user
+                self.myrole = 1
+                if self.battle_room.player_1_connected is False:
+                    self.connect_battleroom()
                     self.send_message("system", f"{user.profile.nickname}님이 player_1로 입장하였습니다.")
                     print(f"{user.profile.nickname}님이 player_1로 입장하였습니다.") # 디버깅
                 else:
-                    self.send_message("fail", "설정 완료된 플레이어입니다.")
-                    print("설정 완료된 플레이어입니다.") # 디버깅
+                    self.send_message("fail", "player_1은은 설정 완료된 플레이어입니다.")
+                    print("player_1은 설정 완료된 플레이어입니다.") # 디버깅
             elif user.id == self.battle_room.player_2.id:
-                if self.player_2 is None:
-                    self.player_2 = user
+                self.myrole = 2
+                if self.battle_room.player_2_connected is False:
+                    self.connect_battleroom()
                     self.send_message("system", f"{user.profile.nickname}님이 player_2로 입장하였습니다.")
                     print(f"{user.profile.nickname}님이 player_2로 입장하였습니다.") # 디버깅
                 else:
-                   self.send_message("fail", "설정 완료된 플레이어입니다.")
-                   print("설정 완료된 플레이어입니다.") # 디버깅
+                   self.send_message("fail", "player_2는 설정 완료된 플레이어입니다.")
+                   print("player_2는 설정 완료된 플레이어입니다.") # 디버깅
             else:
                 self.send_message("fail","존재하지 않은 플레이어입니다. 승인되지 않은 사용자 접근이 발생하여 연결을 중단합니다.")
                 print("존재하지 않은 플레이어입니다. 승인되지 않은 사용자 접근이 발생하여 연결을 중단합니다.") # 디버깅
                 # 예외 처리 구현(해당 배틀룸 삭제)
-                print("player_1: ", self.player_1,"player_2" , self.player_2, "현재 플레이어", user) # 디버깅
+                print("현재 플레이어", user) # 디버깅
                 self.close()
                 return
             
             # 두 명의 플레이어 모두 설정 완료
-            if self.player_1 and self.player_2:
+            if  (self.battle_room.player_2_connected is True) and (self.battle_room.player_2_connected is True):
                 self.setup_battle()  # 배틀룸 설정 시작
 
 
@@ -109,7 +127,15 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             self.close()
             return
         
+    def connect_battleroom(self):
+        if self.myrole == 1:
+            self.battle_room.player_1_connected = True
+        elif self.myrole == 2:
+            self.battle_room.player_2_connected = True
         
+        self.battle_room.save()
+        return 
+
     def setup_battle(self):
         # 1. 상황 보고 메시지 전송
         self.send_message("system",  "아티클을 반환중 입니다. 잠시만 기다려주세요.") 
@@ -131,7 +157,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         # 1. 랜덤 키워드 반환
         query = extract_keywords()
         # 2. 아티클 반환
-        recommended_article = select_article(self.player_1, self.player_2,  query)
+        recommended_article = select_article(self.battle_room.player_1, self.battle_room.player_2,  query)
         # 3. 아티클 본문 요약
         recommended_article['body'] = summarize_article(recommended_article['body'])
         # 4. 아티클 정보 DB 저장 및 Room 연결
@@ -176,10 +202,13 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         )
     
     def send_message(self, type, message):
-        self.send_json({
-            "type": type,
-            "message": message
-        })
+        self.channel_layer.group_send(
+            self.group_name,
+            {
+                "type": type,
+                "message": message
+            }
+        )
 
 
     
