@@ -3,6 +3,7 @@
 import time
 import json
 from django.utils.timezone import now # 시간 활성화
+from asgiref.sync import async_to_sync # 비동기 그룹 메시지 전송을 동기 방식으로 변환
 from channels.generic.websocket import JsonWebsocketConsumer # Json 직렬화&역직렬화
 from rest_framework.authtoken.models import Token
 # 모델
@@ -37,38 +38,31 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         self.article = None
         self.myrole = None
 
-        # 배틀룸 조회 및 connected_users 증가
+        # 배틀룸 조회 
         self.get_battleroom_id()
 
         # 그룹 추가 (같은 battle_room_id를 가진 사용자끼리 그룹화)
-        self.group_name = f"battleroom_{self.battle_room.id}"
-        self.channel_layer.group_add(self.group_name, self.channel_name)
+        if self.battle_room:
+            self.group_name = f"battleroom_{self.battle_room.id}"
+            async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
 
         self.accept()
 
 
     def disconnect(self, close_code):
         print("연결을 중단합니다.") # 디버깅
-        
-        # # 배틀룸 퇴장 로직 -> view에 disconnecet API에 추가하기
-        # if self.battle_room: 
-        #     if self.myrole == 1:
-        #         self.battle_room.player_1_connected = False
-        #     elif self.myrole == 2:
-        #         self.battle_room.player_2_connected = False
-        #     self.battle_room.save()
-        self.battle_room = None  
+        self.disconnect_battleroom()
 
         # 그룹에서 제거
-        self.channel_layer.group_discard(self.group_name, self.channel_name)
-
+        if self.battle_room:
+            async_to_sync(self.channel_layer.group_discard)(self.group_name, self.channel_name)
+            self.battle_room = None  
 
     def receive_json(self, content_dict, **kwargs):
-        # self.get_battleroom_id() # 배틀룸 id 조회
         type = content_dict.get("type") # 메세지 유형 파악(인증)
 
         # 두 사용자 인증 수행
-        if ((self.battle_room.player_2_connected is False) or (self.battle_room.player_2_connected is False)) and type=="auth": 
+        if ((self.battle_room.player_1_connected is False) or (self.battle_room.player_2_connected is False)) and type=="auth": 
             # 1. 토큰 인증
             token = content_dict.get("token") 
             if not token:
@@ -112,9 +106,8 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
                 return
             
             # 두 명의 플레이어 모두 설정 완료
-            if  (self.battle_room.player_2_connected is True) and (self.battle_room.player_2_connected is True):
+            if  (self.battle_room.player_1_connected is True) and (self.battle_room.player_2_connected is True):
                 self.setup_battle()  # 배틀룸 설정 시작
-
 
     def get_battleroom_id(self):
         battle_room_id = self.scope["url_route"]["kwargs"]["battle_room_id"]
@@ -135,10 +128,19 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         
         self.battle_room.save()
         return 
+    
+    def disconnect_battleroom(self):
+        if self.myrole == 1:
+            self.battle_room.player_1_connected = False
+        elif self.myrole == 2:
+            self.battle_room.player_2_connected = False
+        
+        self.battle_room.save()
+        return 
 
     def setup_battle(self):
         # 1. 상황 보고 메시지 전송
-        self.send_message("system",  "아티클을 반환중 입니다. 잠시만 기다려주세요.") 
+        self.send_message("system",  "배틀 퀴즈를 준비 중 입니다. 잠시만 기다려주세요.") 
         print("아티클과 퀴즈를 생성중") # 디버깅
 
         # 2. 아티클 생성
@@ -152,14 +154,27 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         self.send_message("system", "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작해 보세요!")
         print("배틀 설정 완료") # 디버깅
 
+        # 5. 아티클 정보 메세지 전송
+        article = self.battle_room.article.first() 
+        send_message_dic = {"url":article.url, "title":article.title}
+
+        send_message = json.dumps(send_message_dic, ensure_ascii=False) # JSON 문자열 변환 및 따옴표 이스케이프 처리
+        self.send_message("system", send_message)
+    
+
 
     def createBattleArticle(self):
+        self.send_message("system",  "아티클 반환 중...") 
+
         # 1. 랜덤 키워드 반환
         query = extract_keywords()
+        
         # 2. 아티클 반환
         recommended_article = select_article(self.battle_room.player_1, self.battle_room.player_2,  query)
+
         # 3. 아티클 본문 요약
         recommended_article['body'] = summarize_article(recommended_article['body'])
+
         # 4. 아티클 정보 DB 저장 및 Room 연결
         self.article = BattleArticle.objects.create(
             battleroom=self.battle_room,
@@ -167,7 +182,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             body=recommended_article['body'],
             url=recommended_article['url']
         )
-
     
     def createBattleQuiz(self):
         # 1. 아티클 존재 여부 확인
@@ -200,15 +214,26 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             quiz_3 = quiz_cycle["descriptive"]["quiz"],
             quiz_3_ans = quiz_cycle["descriptive"]["answer"]
         )
-    
-    def send_message(self, type, message):
-        self.channel_layer.group_send(
+
+    def send_message(self, msg_type, message):
+        async_to_sync(self.channel_layer.group_send)(
             self.group_name,
             {
-                "type": type,
+                "type": "chat_message", # 핸들러 메서드 이름
+                "msg_type": msg_type,
                 "message": message
             }
         )
+
+
+    def chat_message(self, event): # 그룹메세지 핸들러 메서드 
+        # async_to_sync(self.channel_layer.group_send)(self.group_name, ...)을 event로 잡아냄
+        self.send_json({
+            "type": event["msg_type"],
+            "message": event["message"]
+        })
+
+    
 
 
     
@@ -439,7 +464,13 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.close()
 
         
-
+# # 배틀룸 퇴장 로직 -> view에 disconnecet API에 추가하기
+        # if self.battle_room: 
+        #     if self.myrole == 1:
+        #         self.battle_room.player_1_connected = False
+        #     elif self.myrole == 2:
+        #         self.battle_room.player_2_connected = False
+        #     self.battle_room.save()
 
 
 
@@ -477,3 +508,6 @@ finish
     - 000님, 수고하셨습니다. 총 점수는 M점 입니다. 
 
 '''
+
+
+

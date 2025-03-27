@@ -21,7 +21,7 @@ class Battleroom(models.Model):
 
 
 class BattleArticle(models.Model):
-    battleroom = models.ForeignKey(Battleroom, on_delete=models.CASCADE, related_name="articles") 
+    battleroom = models.ForeignKey(Battleroom, on_delete=models.CASCADE, related_name="article") 
     title =  models.TextField()
     url = models.URLField()
     body = models.TextField()
