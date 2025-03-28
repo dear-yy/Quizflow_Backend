@@ -7,9 +7,9 @@ class Battleroom(models.Model):
     player_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player2_battleroom")
     player_1_connected = models.BooleanField(default=False)
     player_2_connected = models.BooleanField(default=False)
-    # stage [quiz_1 -> quiz_1_ans -> quiz_2 -> quiz_2_ans -> quiz_3 -> quiz_3_ans -> finish -> end]
-    now_stage_1 = models.CharField(max_length=50, default="quiz_1")  
-    now_stage_2 = models.CharField(max_length=50, default="quiz_1")
+    # stage [article -> quiz_1 -> quiz_1_ans -> quiz_2 -> quiz_2_ans -> quiz_3 -> quiz_3_ans -> finish -> end]
+    now_stage_1 = models.CharField(max_length=50, default="article")  
+    now_stage_2 = models.CharField(max_length=50, default="article")
     start_date= models.DateTimeField(null=True, blank=True) # 아티클&퀴즈 생성 완료시 활성화
     end_date_1 = models.DateTimeField(null=True, blank=True) 
     end_date_2 = models.DateTimeField(null=True, blank=True) 

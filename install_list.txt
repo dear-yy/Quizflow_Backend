@@ -43,3 +43,4 @@ psycopg2-binary
 
 # 메모리 기반 데이터 저장소(1:1 매핑 속도 향상을 위해)
 django-redis
+

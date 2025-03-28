@@ -4,7 +4,7 @@ import time
 import json
 from django.utils.timezone import now # 시간 활성화
 from asgiref.sync import async_to_sync # 비동기 그룹 메시지 전송을 동기 방식으로 변환
-from channels.generic.websocket import JsonWebsocketConsumer # Json 직렬화&역직렬화
+from channels.generic.websocket import JsonWebsocketConsumer # Json 직렬화&역직렬화(비동기)
 from rest_framework.authtoken.models import Token
 # 모델
 from django.contrib.auth.models import User
@@ -30,7 +30,8 @@ from functions.battle.battleQuiz import generate_quiz_cycle, check_answer, evalu
     에러 보고
     {"type":"fail", "message":"message"}
 '''
- 
+
+
 class BattleSetupConsumer(JsonWebsocketConsumer):
     def connect(self):
         print("연결 중입니다.") # 디버깅
@@ -83,7 +84,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
                 self.myrole = 1
                 if self.battle_room.player_1_connected is False:
                     self.connect_battleroom()
-                    self.send_message("system", f"{user.profile.nickname}님이 player_1로 입장하였습니다.")
                     print(f"{user.profile.nickname}님이 player_1로 입장하였습니다.") # 디버깅
                 else:
                     self.send_message("fail", "player_1은은 설정 완료된 플레이어입니다.")
@@ -92,7 +92,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
                 self.myrole = 2
                 if self.battle_room.player_2_connected is False:
                     self.connect_battleroom()
-                    self.send_message("system", f"{user.profile.nickname}님이 player_2로 입장하였습니다.")
                     print(f"{user.profile.nickname}님이 player_2로 입장하였습니다.") # 디버깅
                 else:
                    self.send_message("fail", "player_2는 설정 완료된 플레이어입니다.")
@@ -139,32 +138,22 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         return 
 
     def setup_battle(self):
-        # 1. 상황 보고 메시지 전송
-        self.send_message("system",  "배틀 퀴즈를 준비 중 입니다. 잠시만 기다려주세요.") 
-        print("아티클과 퀴즈를 생성중") # 디버깅
-
-        # 2. 아티클 생성
+        # 1. 아티클 생성
         self.createBattleArticle()
 
-        # 3. 퀴즈 생성(아티클 기반)
+        # 2. 퀴즈 생성(아티클 기반)
         self.createBattleQuiz()
         
-        # 4. 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
+        # 3. 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
         self.battle_room.start_date = now()
-        self.send_message("system", "배틀 설정이 완료되었습니다. 이제 퀴즈를 시작해 보세요!")
+        self.battle_room.save()
+
         print("배틀 설정 완료") # 디버깅
-
-        # 5. 아티클 정보 메세지 전송
-        article = self.battle_room.article.first() 
-        send_message_dic = {"url":article.url, "title":article.title}
-
-        send_message = json.dumps(send_message_dic, ensure_ascii=False) # JSON 문자열 변환 및 따옴표 이스케이프 처리
-        self.send_message("system", send_message)
-    
-
+        self.send_message("system", "설정 완료")
+        
 
     def createBattleArticle(self):
-        self.send_message("system",  "아티클 반환 중...") 
+        print("아티클과 퀴즈를 생성중") # 디버깅
 
         # 1. 랜덤 키워드 반환
         query = extract_keywords()
@@ -190,7 +179,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             print("아티클이 설정되지 않았습니다. 퀴즈를 생성할 수 없습니다.") # 디버깅
             # 예외 처리 구현
             return
-        self.send_message("system", "아티클 기반 퀴즈를 생성 중...")
         print("아티클 기반 퀴즈를 생성 중...") # 디버깅
 
         # 2. 퀴즈 한 사이클 생성
@@ -198,7 +186,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
 
         # 3. 생성된 퀴즈 세트 생성 여부 파악 
         if not quiz_cycle:
-            self.send_message("fail", "퀴즈 세트를 생성하는데 실패했습니다.")
             print("퀴즈 세트를 생성하는데 실패했습니다.") # 디버깅
             # 예외 처리 구현 
             return
@@ -225,15 +212,13 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
             }
         )
 
-
     def chat_message(self, event): # 그룹메세지 핸들러 메서드 
-        # async_to_sync(self.channel_layer.group_send)(self.group_name, ...)을 event로 잡아냄
+        # self.channel_layer.group_send (self.group_name, ...)을 event로 잡아냄
         self.send_json({
             "type": event["msg_type"],
             "message": event["message"]
         })
 
-    
 
 
     
@@ -351,7 +336,14 @@ class BattleConsumer(JsonWebsocketConsumer):
     def process_stage_player_1(self, message_content=""):
         send_message =  "" # 초기화
 
-        if self.battle_room.now_stage_1 == "quiz_1": # quiz_1 (문제) 메세지 전송 
+        if self.battle_room.now_stage_1 == "article": # 아티클 정보 메세지 전송
+            print("--article--")
+            article = self.battle_room.article.first() 
+            # 예외 처리(아티클 정보 존재 여부) # UTF8 처리하기
+            send_message = {"url":article.url, "title":article.title}
+            self.battle_room.now_stage_1 = "quiz_1"
+
+        elif self.battle_room.now_stage_1 == "quiz_1": # quiz_1 (문제) 메세지 전송 
             print("--quiz_1--")
             send_message = self.battle_quiz.quiz_1
             self.battle_room.now_stage_1 = "quiz_1_ans"
@@ -388,28 +380,37 @@ class BattleConsumer(JsonWebsocketConsumer):
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지 
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_1}점 입니다."
-            self.battle_room.now_stage_1 = "end"
-            
-        self.battle_room.save()
-        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
 
-        if self.battle_room.now_stage_1 in ["quiz_2", "quiz_3", "finish", "end"]: # 직접 호출 필요 단계
-            time.sleep(2)  # 2초 동안 대기
-            self.process_stage_player_1()
-        elif self.battle_room.now_stage_1 == "end": # 배틀룸 종료 상태 확인
-            if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"", "player_1": True, "player_2":True, "my_role":1}
+            if self.battle_room.end_date_2 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
                 self.battle_room.is_ended = True
             else: # 현재 플레이어가 배틀은 먼저 끝냄
                 message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
+
+            self.battle_room.now_stage_1 = "end" # 최종 종료
+            
+        self.battle_room.save()
+        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
+        if self.battle_room.now_stage_1 == "end":
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
             self.close()
+
+        if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
+            time.sleep(2)  # 2초 동안 대기
+            self.process_stage_player_1()
         
 
     def process_stage_player_2(self, message_content=""):   
         send_message =  "" # 초기화
 
-        if self.battle_room.now_stage_2 == "quiz_1": # quiz_1 (문제) 메세지 전송 
+        if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
+            print("--article--")
+            article = self.battle_room.article.first() 
+            # 예외 처리(아티클 정보 존재 여부) # UTF8 처리하기
+            send_message = {"url":article.url, "title":article.title}
+            self.battle_room.now_stage_2 = "quiz_1"
+
+        elif self.battle_room.now_stage_2 == "quiz_1": # quiz_1 (문제) 메세지 전송 
             print("--quiz_1--")
             send_message = self.battle_quiz.quiz_1
             self.battle_room.now_stage_2 = "quiz_1_ans"
@@ -446,63 +447,50 @@ class BattleConsumer(JsonWebsocketConsumer):
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_2}점 입니다."
-            self.battle_room.now_stage_2 = "end"
-    
-        self.battle_room.save()
-        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
 
-        if self.battle_room.now_stage_2 in ["quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계계
-            time.sleep(2)  # 2초 동안 대기
-            self.process_stage_player_2()
-        elif self.battle_room.now_stage_2 == "end": # 배틀룸 종료 상태 확인
             if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"", "player_1": True, "player_2":True, "my_role":2}
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2}
                 self.battle_room.is_ended = True
             else: # 현재 플레이어가 배틀은 먼저 끝냄 
                 message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2}  
+            
+            self.battle_room.now_stage_2 = "end"
+        
+        self.battle_room.save()
+        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
+        if self.battle_room.now_stage_2 == "end":
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
             self.close()
 
-        
-# # 배틀룸 퇴장 로직 -> view에 disconnecet API에 추가하기
-        # if self.battle_room: 
-        #     if self.myrole == 1:
-        #         self.battle_room.player_1_connected = False
-        #     elif self.myrole == 2:
-        #         self.battle_room.player_2_connected = False
-        #     self.battle_room.save()
+        if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
+            time.sleep(2)  # 2초 동안 대기
+            self.process_stage_player_2()
+            
+
 
 
 
 '''
 
-stage [quiz_1 -> quiz_1_ans -> quiz_2 -> quiz_2_ans -> quiz_3 -> quiz_3_ans -> finish]
+stage [article -> quiz_1 -> quiz_1_ans -> quiz_2 -> quiz_2_ans -> quiz_3 -> quiz_3_ans -> finish]
 
-quiz_1 
+article
+    시스템이 사용자(클라이언트)에게 아티클 정보 전달
+
+quiz_n 
     시스템(GPT) 퀴즈 1번 사용자(클라이언트)에게 전달 
-quiz_1_ans
+quiz_n_ans
     사용자(클라이언트) 퀴즈 1번 답변 시스템으로 전달 
     시스템(GPT) 채점 결과 사용자(클라이언트)에게 전달 
 
-quiz_2
-    ...동일...
-quiz_2_ans
-    ...동일...
-
-quiz_3
-    ...동일...
-quiz_3_ans
-    ...동일...
-
 finish
-    시스템이 사용자(클라이언트)에게 종료 메세지(총점) 전송 
+    시스템이 사용자(클라이언트)에게 종료 메세지(총점) 전달
 
 
 채점 메세지 형식 
     - 정답입니다.(2점)
     - 오답입니다.(0점)
     - 피드백: ~~~ (n점)
-
 
 종료 메세지 
     - 000님, 수고하셨습니다. 총 점수는 M점 입니다. 
