@@ -313,6 +313,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return True, message_content, send_message
         else: # 채점 성공
             self.quizroom.total_score += score # quizroom에 점수 반영
+            self.user.profile.ranking_score += score # ranking_score 점수 반영
+            self.user.profile.save()
             return False, message_content, send_message 
     
     # 2번_객관식 
@@ -336,6 +338,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return True, message_content, send_message
         else: # 채점 성공
             self.quizroom.total_score += score # quizroom에 점수 반영
+            self.user.profile.ranking_score += score # ranking_score 점수 반영
+            self.user.profile.save()
             return False, message_content, send_message
          
     # 3번_서술형 
@@ -362,6 +366,8 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         else: # 채점 성공
             send_message = feedback
             self.quizroom.total_score += score # quizroom에 점수 반영
+            self.user.profile.ranking_score += score # ranking_score 점수 반영
+            self.user.profile.save()
             return False, message_content, send_message
 
 

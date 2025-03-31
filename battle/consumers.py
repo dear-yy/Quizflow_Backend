@@ -391,7 +391,8 @@ class BattleConsumer(JsonWebsocketConsumer):
             
         self.battle_room.save()
         self.send_json({"type":"user", "message":send_message , "is_gpt": True})
-        if self.battle_room.now_stage_1 == "end":
+        if self.battle_room.now_stage_1 == "end": 
+            # battle 종료
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
             self.close()
 

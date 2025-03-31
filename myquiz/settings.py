@@ -46,6 +46,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '10.0.2.2',  # Flutter 에뮬레이터에서 접근할 때 사용하는 IP
+    '*',     
 ]
 
 
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     "users",  # 회원가입 & 로그인 기능을 수행하는 앱
     "quiz_room", # 퀴즈 서비스를 제공할 앱
     "battle", # 배틀 서비스를 제공할 앱
+    "ranking", # 랭킹 시스템
     "corsheaders", # 서버가 cors 정책 준수하도록 하는 앱
     "channels",  # 
     "django_redis",  # Redis 캐싱 추가

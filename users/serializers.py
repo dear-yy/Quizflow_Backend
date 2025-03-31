@@ -86,3 +86,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ["user", "nickname", "image", "ranking_score"]  # ranking_score 필드 추가
+
+
+# 랭킹 시스템 조회시 필용한 프로필 정보
+class ProfileInfoForRankingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ["nickname", "ranking_score", "image"]  
