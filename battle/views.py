@@ -96,14 +96,7 @@ class MatchBattleViewAPI(APIView):
         player_2 = User.objects.get(id=player_2_id)
     
         # 배틀룸 생성
-        battleroom = Battleroom.objects.create(
-            player_1=player_1,
-            player_2=player_2,
-            # 초기 스테이지는 기본값 "quiz_1"으로 
-            now_stage_1="quiz_1",
-            now_stage_2="quiz_1",
-            start_date=timezone.now()  # 배틀룸 생성 시각
-        )
+        battleroom = Battleroom.objects.create( player_1=player_1, player_2=player_2 )
 
         return battleroom
 

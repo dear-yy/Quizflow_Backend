@@ -121,11 +121,12 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         
     def connect_battleroom(self):
         if self.myrole == 1:
-            self.battle_room.player_1_connected = True
+            Battleroom.objects.filter(pk=self.battle_room.id).update(player_1_connected = True)
         elif self.myrole == 2:
-            self.battle_room.player_2_connected = True
+            Battleroom.objects.filter(pk=self.battle_room.id).update(player_2_connected = True)
         
-        self.battle_room.save()
+        # self.battle_room.save()
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
         return 
     
     def disconnect_battleroom(self):

@@ -21,7 +21,6 @@ class ProfileInline(admin.StackedInline):
 class UserAdmin(BaseUserAdmin):  # 기본 UserAdmin을 상속받아 확장
     inlines = (ProfileInline,)  # ProfileInline을 추가
 
-
 # 3. 기존 User 모델의 기본 UserAdmin 등록 취소 후, 새롭게 확장한 UserAdmin 등록
 admin.site.unregister(User)  # Django 기본 User 모델의 기본 UserAdmin 등록 취소
 admin.site.register(User, UserAdmin)  # User 모델에 확장된 UserAdmin을 새로 등록
