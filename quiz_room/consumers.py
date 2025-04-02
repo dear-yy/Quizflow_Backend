@@ -313,8 +313,6 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return True, message_content, send_message
         else: # 채점 성공
             self.quizroom.total_score += score # quizroom에 점수 반영
-            self.user.profile.ranking_score += score # ranking_score 점수 반영
-            self.user.profile.save()
             return False, message_content, send_message 
     
     # 2번_객관식 
@@ -338,8 +336,6 @@ class QuizroomConsumer(JsonWebsocketConsumer):
             return True, message_content, send_message
         else: # 채점 성공
             self.quizroom.total_score += score # quizroom에 점수 반영
-            self.user.profile.ranking_score += score # ranking_score 점수 반영
-            self.user.profile.save()
             return False, message_content, send_message
          
     # 3번_서술형 
@@ -366,13 +362,15 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         else: # 채점 성공
             send_message = feedback
             self.quizroom.total_score += score # quizroom에 점수 반영
-            self.user.profile.ranking_score += score # ranking_score 점수 반영
-            self.user.profile.save()
             return False, message_content, send_message
 
 
     def finish_quiz(self): # 퀴즈룸 종료 처리
         if self.quizroom.cnt == 3:
+            # 프로필의 랭킹 점수 반영
+            self.user.profile.ranking_score += self.quizroom.total_score
+            self.user.profile.save()
+
             # 총점 메시지 
             send_message = f" 최종 점수: {self.quizroom.total_score}/30"
             self.gpt_send_message(send_message)
