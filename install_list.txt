@@ -41,6 +41,6 @@ django-cors-headers
 # Postgresql 연동을 위한 패키지
 psycopg2-binary
 
-# 메모리 기반 데이터 저장소(1:1 매핑 속도 향상을 위해)
+#  Djago와 Redis 서버와 연결하는 역할
 django-redis
 
