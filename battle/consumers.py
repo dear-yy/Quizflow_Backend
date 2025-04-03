@@ -164,13 +164,12 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
 
         # # 3. 아티클 본문 요약
         # recommended_article['body'] = summarize_article(recommended_article['body'])
-        
-        recommended_article = {
-            "title": "곰솔 쓰러진 곳에 5m 절벽이…기후위기가 해안 집어삼키다",
-            "body": "녹색연합의 조사에 따르면, 한국의 해안에서 심각한 모래 침식이 발생하고 있으며, 이는 기후변화, 무분별한 골재 채취, 인공시설물 개발 등 여러 요인에 기인하고 있다. 조사된 54개 해안 중 18곳에서 2m 이상의 침식이 관찰되었고, 침식 저감 시설이 설치된 곳에서도 침식과 구조물의 무너짐이 발생했다. 특히 전남 신안군의 우전해변은 해송림이 바닷물에 의해 훼손되고 있다. 해수욕장 복원 사업에도 불구하고, 포항시는 최근 몇 년간 해수욕장을 재개장하지 못하고 있으며, 강릉과 삼척 지역의 해안 침식이 특히 심각하다. 사천진해변과 영진해변은 관광객이 방문함에도 불구하고 모래가 급속히 사라지고 있다. 해수면 상승과 다른 요인들이 결합하면 해안 침식이 더욱 심각해질 수 있으며, 이는 재난적 위기를 초래할 가능성이 있다. 한국 정부의 이 문제에 대한 인식은 의문스럽고, 기후위기가 특정 단계를 넘어서면 급격히 악화될 수 있다. 최근 서울에서의 열대야 현상은 기후위기가 일상에 미치는 영향을 잘 보여준다. 연안 해안을 무분별하게 개발할 경우, 백사장이 빠르게 사라지고 우리의 삶과 미래가 위협받을 수 있다.",
-            "url": "https://www.hani.co.kr/arti/society/environment/1155134.html"
-        }
 
+        recommended_article = {
+             "title": "곰솔 쓰러진 곳에 5m 절벽이…기후위기가 해안 집어삼키다",
+             "body": "녹색연합의 조사에 따르면, 한국의 해안에서 심각한 모래 침식이 발생하고 있으며, 이는 기후변화, 무분별한 골재 채취, 인공시설물 개발 등 여러 요인에 기인하고 있다. 조사된 54개 해안 중 18곳에서 2m 이상의 침식이 관찰되었고, 침식 저감 시설이 설치된 곳에서도 침식과 구조물의 무너짐이 발생했다. 특히 전남 신안군의 우전해변은 해송림이 바닷물에 의해 훼손되고 있다. 해수욕장 복원 사업에도 불구하고, 포항시는 최근 몇 년간 해수욕장을 재개장하지 못하고 있으며, 강릉과 삼척 지역의 해안 침식이 특히 심각하다. 사천진해변과 영진해변은 관광객이 방문함에도 불구하고 모래가 급속히 사라지고 있다. 해수면 상승과 다른 요인들이 결합하면 해안 침식이 더욱 심각해질 수 있으며, 이는 재난적 위기를 초래할 가능성이 있다. 한국 정부의 이 문제에 대한 인식은 의문스럽고, 기후위기가 특정 단계를 넘어서면 급격히 악화될 수 있다. 최근 서울에서의 열대야 현상은 기후위기가 일상에 미치는 영향을 잘 보여준다. 연안 해안을 무분별하게 개발할 경우, 백사장이 빠르게 사라지고 우리의 삶과 미래가 위협받을 수 있다.",
+             "url": "https://www.hani.co.kr/arti/society/environment/1155134.html"
+         }
 
         # 4. 아티클 정보 DB 저장 및 Room 연결
         self.article = BattleArticle.objects.create(
@@ -343,6 +342,7 @@ class BattleConsumer(JsonWebsocketConsumer):
     # 배틀 퀴즈 단계별 처리 함수
     def process_stage_player_1(self, message_content=""):
         send_message =  "" # 초기화
+        status = False # Dsiconnect View 호출 트리거 
 
         if self.battle_room.now_stage_1 == "article": # 아티클 정보 메세지 전송
             print("--article--")
@@ -384,6 +384,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
                 self.battle_room.now_stage_1 = "finish"
+                status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지 
             print("--배틀 종료--")
@@ -398,10 +399,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.battle_room.now_stage_1 = "end" # 최종 종료
             
         self.battle_room.save()
-        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
+        self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
         if self.battle_room.now_stage_1 == "end": 
             # battle 종료
-            self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
+            self.send_json({"type":"user", "message_content": message_content, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
@@ -411,6 +412,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
     def process_stage_player_2(self, message_content=""):   
         send_message =  "" # 초기화
+        status = False # Dsiconnect View 호출 트리거 
 
         if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
             print("--article--")
@@ -452,6 +454,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
                 self.battle_room.now_stage_2 = "finish"
+                status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
             print("--배틀 종료--")
@@ -466,9 +469,9 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.battle_room.now_stage_2 = "end"
         
         self.battle_room.save()
-        self.send_json({"type":"user", "message":send_message , "is_gpt": True})
+        self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
         if self.battle_room.now_stage_2 == "end":
-            self.send_json({"type":"user", "message_content": message_content, "is_gpt": True})
+            self.send_json({"type":"user", "message_content": message_content, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
