@@ -146,8 +146,42 @@ class BattleroomListViewAPI(APIView):
         user = request.user  # 로그인한 사용자 가져오기
         battlerooms = Battleroom.objects.filter(player_1=user,  is_ended=True) | Battleroom.objects.filter(player_2=user, is_ended=True)
         
-        serializer = BattleroomListSerializer(battlerooms, many=True) # 직렬화
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # 결과 데이터 저장
+        battleroom_data = []
+        for battleroom in battlerooms:
+            # 사용자 역할 확인
+            role = 1 if battleroom.player_1 == user else 2
+            
+            # 승패 여부 평가
+            match_result = self.evaluate_match(battleroom, role)
+
+            # 직렬화 후 승패 결과 추가
+            serialized_data = BattleroomListSerializer(battleroom).data
+            serialized_data["match_result"] = match_result  # "win", "lose", "draw"
+            battleroom_data.append(serialized_data)
+
+        return Response(battleroom_data, status=status.HTTP_200_OK)
+
+
+    def evaluate_match(self, battleroom, role):
+        winner = 0
+        if battleroom.total_score_1 > battleroom.total_score_2: # 1번 플레이어 승 
+            winner = 1
+        elif battleroom.total_score_1 < battleroom.total_score_2: # 2번 플레이어 승 
+            winner = 2
+        elif battleroom.total_score_1 == battleroom.total_score_2: 
+            # 시간 고려
+            if battleroom.end_date_1 < battleroom.end_date_2: # 1번 플레이어 승 
+                winner = 1
+            elif battleroom.end_date_1 > battleroom.end_date_2: # 2번 플레이어 승 
+                winner = 2
+
+        if winner == 1:
+            return "win" if role == 1 else "lose"
+        elif winner == 2:
+            return "win" if role == 2 else "lose"
+        elif winner == 0: 
+            return "draw"
 
 
 class NewBattleroomViewAPI(APIView):
@@ -241,21 +275,21 @@ class BattleroomResultViewAPI(APIView):
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST) 
             
     def evaluate_match(self, battleroom, role):
-        result = 0
+        winner = 0
         if battleroom.total_score_1 > battleroom.total_score_2: # 1번 플레이어 승 
-            result = 1
+            winner = 1
         elif battleroom.total_score_1 < battleroom.total_score_2: # 2번 플레이어 승 
-            result = 2
+            winner = 2
         elif battleroom.total_score_1 == battleroom.total_score_2: 
             # 시간 고려
             if battleroom.end_date_1 < battleroom.end_date_2: # 1번 플레이어 승 
-                result = 1
+                winner = 1
             elif battleroom.end_date_1 > battleroom.end_date_2: # 2번 플레이어 승 
-                result = 2
+                winner = 2
 
-        if result == 1:
+        if winner == 1:
             return "win" if role == 1 else "lose"
-        elif result == 2:
+        elif winner == 2:
             return "win" if role == 2 else "lose"
-        elif result == 0: 
+        elif winner == 0: 
             return "draw"
