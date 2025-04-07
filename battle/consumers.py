@@ -497,9 +497,11 @@ class BattleConsumer(JsonWebsocketConsumer):
         message_content = None
 
         if (my_role==1) and (self.battle_room.end_date_2 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
-            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": False, "player_2":True, "my_role":1}
+            my_status = self.battle_room.end_date_1 is not None # 종료 시 True
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":True, "my_role":1}
         if (my_role==2) and (self.battle_room.end_date_1 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
-            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": True, "player_2":False, "my_role":2}
+            my_status = self.battle_room.end_date_2 is not None # 종료 시 True
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":False, "my_role":2}
        
         return message_content
 
