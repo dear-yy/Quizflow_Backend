@@ -387,11 +387,12 @@ class BattleConsumer(JsonWebsocketConsumer):
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
                 Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "finish")
+                status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지 
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_1}점 입니다."
-            status = True # 트리거 활성화
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "end")
 
             if self.battle_room.end_date_2 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
                 message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
@@ -457,10 +458,12 @@ class BattleConsumer(JsonWebsocketConsumer):
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
                 Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "finish")
+                status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_2}점 입니다."
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "end")
 
             if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
                 message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2}
