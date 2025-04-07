@@ -343,9 +343,10 @@ class BattleConsumer(JsonWebsocketConsumer):
     def process_stage_player_1(self, receive_message_content=""):
         send_message =  "" # 초기화
         status = False # Dsiconnect View 호출 트리거 
-        
-        if self.check_stage(1) is not None: # 상대 종료 여부 파악(팝업용)
-            self.send_json({"type":"user", "message_content": self.check_stage(1), "is_gpt": True, "disconnect":status})
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
+
+        if self.check_opponent_end_status(1) is not None:
+            self.send_json({"type":"user", "message":self.check_opponent_end_status(1) , "is_gpt": True, "disconnect":status})
 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
@@ -397,7 +398,12 @@ class BattleConsumer(JsonWebsocketConsumer):
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_1}점 입니다."
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "end")
-            message_content = self.check_stage(1)
+
+            if self.battle_room.end_date_2 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
+                Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
+            else: # 현재 플레이어가 배틀은 먼저 끝냄
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
             
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
@@ -412,15 +418,16 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_1()
         
 
-    def process_stage_player_2(self, receive_message_content=""):  
+    def process_stage_player_2(self, receive_message_content=""):   
         send_message =  "" # 초기화
-        status = False # Dsiconnect View 호출 트리거 
-        
-        if self.check_stage(2) is not None: # 상대 종료 여부 파악(팝업용)
-            self.send_json({"type":"user", "message_content": self.check_stage(2), "is_gpt": True, "disconnect":status})
-
+        status = False # Dsiconnect View 호출 트리거
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
+        if self.check_opponent_end_status(2) is not None:
+            self.send_json({"type":"user", "message":self.check_opponent_end_status(2) , "is_gpt": True, "disconnect":status})
+
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
+        
         if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
             print("--article--")
             article = self.battle_room.article.first() 
@@ -467,7 +474,12 @@ class BattleConsumer(JsonWebsocketConsumer):
             print("--배틀 종료--")
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_2}점 입니다."
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "end")
-            message_content = self.check_stage(2)
+
+            if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2}
+                Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
+            else: # 현재 플레이어가 배틀은 먼저 끝냄 
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2}  
         
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
@@ -481,34 +493,16 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_2()
             
 
-    def check_stage(self, my_role):
+    def check_opponent_end_status(self, my_role): # 팝업용
         message_content = None
-        self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
-        if my_role == 1:
-            if self. battle_room.end_date_1 is not None: # 팝업용(확인용) 
-                if self.battle_room.end_date_2 is not None: # 상대가 먼저 끝냄
-                    message_content = {"message":"상대 플레이어가 배틀를 완료했습니다.", "player_1": True, "player_2":True, "my_role":1}
-            else: # 본인 종료 시 
-                if self.battle_room.end_date_2 is not None: # 상대가 먼저 끝냄
-                    message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
-                    Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
-                else: # 본인이 먼저 끝냄
-                    message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
-        elif my_role == 2:
-            if self. battle_room.end_date_2 is not None: # 팝업용(확인용) 
-                if self.battle_room.end_date_1 is not None: # 상대가 먼저 끝냄
-                    message_content = {"message":"상대 플레이어가 배틀를 완료했습니다.", "player_1": True, "player_2":True, "my_role":2}
-            else: # 본인 종료 시
-                if self.battle_room.end_date_1 is not None: # 상대가 먼저 끝냄
-                    message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2}
-                    Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
-                else: # 본인이 먼저 끝냄 
-                    message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2} 
-
-        self.battle_room.refresh_from_db() # 최신 상태로 동기화
-
+        if (my_role==1) and (self.battle_room.end_date_2 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": False, "player_2":True, "my_role":1}
+        if (my_role==2) and (self.battle_room.end_date_1 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": True, "player_2":False, "my_role":2}
+       
         return message_content
+
 
 
 '''

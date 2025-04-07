@@ -36,8 +36,8 @@ class MatchBattleViewAPI(APIView):
 
         # print("생성 카운팅", battle_generate_cnt) # 디버깅
 
-        if battle_generate_cnt >= 1:
-            return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
+        # if battle_generate_cnt >= 1:
+        #     return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
     
 
         # Redis에서 대기열(Queue) 가져오기
