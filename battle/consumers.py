@@ -346,7 +346,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         if self.check_opponent_end_status(1) is not None:
-            self.send_json({"type":"user", "message":self.check_opponent_end_status(1) , "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"user", "message_content":self.check_opponent_end_status(1) , "is_gpt": True, "disconnect":status})
 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
@@ -422,9 +422,9 @@ class BattleConsumer(JsonWebsocketConsumer):
         send_message =  "" # 초기화
         status = False # Dsiconnect View 호출 트리거
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
-
+        
         if self.check_opponent_end_status(2) is not None:
-            self.send_json({"type":"user", "message":self.check_opponent_end_status(2) , "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"user", "message_content":self.check_opponent_end_status(2) , "is_gpt": True, "disconnect":status})
 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
