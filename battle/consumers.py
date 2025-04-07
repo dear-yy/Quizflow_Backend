@@ -247,6 +247,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.role = None # 본인이 player_1인지 player_2인지
         self.battle_room = None
         self.battle_quiz =  None
+        self.popup_flage = False
         self.accept()
 
     def disconnect(self, close_code):
@@ -345,8 +346,9 @@ class BattleConsumer(JsonWebsocketConsumer):
         status = False # Dsiconnect View 호출 트리거 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
-        if self.check_opponent_end_status(1) is not None:
+        if (self.check_opponent_end_status(1) is not None) and (self.popup_flage is False):
             self.send_json({"type":"user", "message_content":self.check_opponent_end_status(1) , "is_gpt": True, "disconnect":status})
+            self.popup_flage = True
 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
@@ -423,9 +425,10 @@ class BattleConsumer(JsonWebsocketConsumer):
         status = False # Dsiconnect View 호출 트리거
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
-        if self.check_opponent_end_status(2) is not None:
+        if (self.check_opponent_end_status(2) is not None) and (self.popup_flage is False):
             self.send_json({"type":"user", "message_content":self.check_opponent_end_status(2) , "is_gpt": True, "disconnect":status})
-
+            self.popup_flage = True
+            
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
         if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
