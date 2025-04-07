@@ -220,7 +220,11 @@ class BattleroomDisconnectViewAPI(APIView):
             return Response({"error": "battle_id, user_id, end_date 데이터 누락"}, status=status.HTTP_400_BAD_REQUEST)
         
         # 1. 배틀룸 종료 시간 설정
-        battleroom = Battleroom.objects.filter(pk=battleroom_id).first() #  first()를 통해 단일 객체 가져오기
+        battleroom = Battleroom.objects.get(pk=battleroom_id)
+        print("[before]")
+        print("사용자1", battleroom.player_1, "/ 종료시간", battleroom.end_date_1, "/ 단계", battleroom.now_stage_1)
+        print("사용자2", battleroom.player_2, "/ 종료시간", battleroom.end_date_2, "/ 단계", battleroom.now_stage_2)
+        
         if not battleroom:
             return Response({"error": "존재하지 않은 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
         else:     
@@ -231,21 +235,28 @@ class BattleroomDisconnectViewAPI(APIView):
                 return Response({"error": "date형식 오류"}, status=status.HTTP_400_BAD_REQUEST)
             
             if battleroom.player_1.id==user_id:
-                battleroom.end_date_1 = end_date
-                battleroom.now_stage_1 = "end"
+                Battleroom.objects.filter(pk=battleroom.id).update(end_date_1=end_date, now_stage_1="end")
                 total_score = battleroom.total_score_1
             elif battleroom.player_2.id==user_id:
-                battleroom.end_date_2 = end_date
-                battleroom.now_stage_2 = "end"
+                Battleroom.objects.filter(pk=battleroom.id).update(end_date_2=end_date, now_stage_2="end")
+
                 total_score = battleroom.total_score_2
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
             
-            battleroom.save()
+            battleroom.refresh_from_db()
+            # battleroom.save()
+
+            print("[after]")
+            print("사용자1", battleroom.player_1, "/ 종료시간", battleroom.end_date_1, "/ 단계", battleroom.now_stage_1)
+            print("사용자2", battleroom.player_2, "/ 종료시간", battleroom.end_date_2, "/ 단계", battleroom.now_stage_2)
+
+            
 
             # 2. battle점수 프로필 ranking_score 반영
-            request.user.profile.ranking_score = total_score
+            request.user.profile.ranking_score += total_score
             request.user.profile.save()
+
 
             return Response({"message": "end_date 설정 완료"}, status=status.HTTP_200_OK)
 

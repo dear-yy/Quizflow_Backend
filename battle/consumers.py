@@ -2,6 +2,7 @@
 
 import time
 import json
+from django.db.models import F
 from django.utils.timezone import now # 시간 활성화
 from asgiref.sync import async_to_sync # 비동기 그룹 메시지 전송을 동기 방식으로 변환
 from channels.generic.websocket import JsonWebsocketConsumer # Json 직렬화&역직렬화(비동기)
@@ -125,17 +126,16 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         elif self.myrole == 2:
             Battleroom.objects.filter(pk=self.battle_room.id).update(player_2_connected = True)
         
-        # self.battle_room.save()
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         return 
     
     def disconnect_battleroom(self):
         if self.myrole == 1:
-            self.battle_room.player_1_connected = False
+            Battleroom.objects.filter(pk=self.battle_room.id).update(player_1_connected = False)
         elif self.myrole == 2:
-            self.battle_room.player_2_connected = False
+            Battleroom.objects.filter(pk=self.battle_room.id).update(player_2_connected = False)
         
-        self.battle_room.save()
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
         return 
 
     def setup_battle(self):
@@ -146,8 +146,8 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         self.createBattleQuiz()
         
         # 3. 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
-        self.battle_room.start_date = now()
-        self.battle_room.save()
+        Battleroom.objects.filter(pk=self.battle_room.id).update(start_date = now())
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         print("배틀 설정 완료") # 디버깅
         self.send_message("system", "설정 완료")
@@ -343,47 +343,50 @@ class BattleConsumer(JsonWebsocketConsumer):
     def process_stage_player_1(self, message_content=""):
         send_message =  "" # 초기화
         status = False # Dsiconnect View 호출 트리거 
-
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
+        
         if self.battle_room.now_stage_1 == "article": # 아티클 정보 메세지 전송
             print("--article--")
             article = self.battle_room.article.first() 
             # 예외 처리(아티클 정보 존재 여부) # UTF8 처리하기
             send_message = {"url":article.url, "title":article.title}
-            self.battle_room.now_stage_1 = "quiz_1"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_1")
 
         elif self.battle_room.now_stage_1 == "quiz_1": # quiz_1 (문제) 메세지 전송 
             print("--quiz_1--")
             send_message = self.battle_quiz.quiz_1
-            self.battle_room.now_stage_1 = "quiz_1_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1="quiz_1_ans")
         elif self.battle_room.now_stage_1 == "quiz_1_ans":# quiz_1 (채점) 메세지 전송 
             print("--quiz_1_ans--")
             fail, send_message, score = check_answer(message_content, self.battle_quiz.quiz_1_ans)
-            self.battle_room.total_score_1 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_1=F('total_score_1') + score)
+
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_1 = "quiz_2"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_2")
+            
         
         elif self.battle_room.now_stage_1 == "quiz_2":# quiz_2 (문제) 메세지 전송
             print("--quiz_2--")
             send_message = self.battle_quiz.quiz_2
-            self.battle_room.now_stage_1 = "quiz_2_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_2_ans")
         elif self.battle_room.now_stage_1 == "quiz_2_ans":# quiz_2 (채점) 메세지 전송
             print("--quiz_2_ans--")
             fail, send_message, score = check_answer(message_content, self.battle_quiz.quiz_2_ans)
-            self.battle_room.total_score_1 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_1=F('total_score_1') + score)
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_1 = "quiz_3"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_3")
 
         elif self.battle_room.now_stage_1 == "quiz_3":# quiz_3 (문제) 메세지 전송 
             print("--quiz_3--")
             send_message = self.battle_quiz.quiz_3
-            self.battle_room.now_stage_1 = "quiz_3_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_3_ans")
         elif self.battle_room.now_stage_1 == "quiz_3_ans":# quiz_3 (채점) 메세지 전송
             print("--quiz_3_ans--")
             fail, send_message, score = evaluate_descriptive_answer(message_content, self.battle_quiz.quiz_3, self.battle_quiz.quiz_3_ans)
-            self.battle_room.total_score_1 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_1=F('total_score_1') + score)
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_1 = "finish"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "finish")
                 status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지 
@@ -392,14 +395,13 @@ class BattleConsumer(JsonWebsocketConsumer):
 
             if self.battle_room.end_date_2 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
                 message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
-                self.battle_room.is_ended = True
+                Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
             else: # 현재 플레이어가 배틀은 먼저 끝냄
                 message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
-
-            self.battle_room.now_stage_1 = "end" # 최종 종료
             
-        self.battle_room.save()
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
+
         if self.battle_room.now_stage_1 == "end": 
             # battle 종료
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True, "disconnect":status})
@@ -413,47 +415,48 @@ class BattleConsumer(JsonWebsocketConsumer):
     def process_stage_player_2(self, message_content=""):   
         send_message =  "" # 초기화
         status = False # Dsiconnect View 호출 트리거 
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
             print("--article--")
             article = self.battle_room.article.first() 
             # 예외 처리(아티클 정보 존재 여부) # UTF8 처리하기
             send_message = {"url":article.url, "title":article.title}
-            self.battle_room.now_stage_2 = "quiz_1"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_1")
 
         elif self.battle_room.now_stage_2 == "quiz_1": # quiz_1 (문제) 메세지 전송 
             print("--quiz_1--")
             send_message = self.battle_quiz.quiz_1
-            self.battle_room.now_stage_2 = "quiz_1_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_1_ans")
         elif self.battle_room.now_stage_2 == "quiz_1_ans":# quiz_1 (채점) 메세지 전송 
             print("--quiz_1_ans--")
             fail, send_message, score = check_answer(message_content, self.battle_quiz.quiz_1_ans)
-            self.battle_room.total_score_2 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_2=F('total_score_2') + score)
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_2 = "quiz_2"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_2")
         
         elif self.battle_room.now_stage_2 == "quiz_2":# quiz_2 (문제) 메세지 전송
             print("--quiz_2--")
             send_message = self.battle_quiz.quiz_2
-            self.battle_room.now_stage_2 = "quiz_2_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_2_ans")
         elif self.battle_room.now_stage_2 == "quiz_2_ans":# quiz_2 (채점) 메세지 전송
             print("--quiz_2_ans--")
             fail, send_message, score = check_answer(message_content, self.battle_quiz.quiz_2_ans)
-            self.battle_room.total_score_2 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_2=F('total_score_2') + score)
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_2 = "quiz_3"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_3")
 
         elif self.battle_room.now_stage_2 == "quiz_3":# quiz_3 (문제) 메세지 전송 
             print("--quiz_3--")
             send_message = self.battle_quiz.quiz_3
-            self.battle_room.now_stage_2 = "quiz_3_ans"
+            Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "quiz_3_ans")
         elif self.battle_room.now_stage_2 == "quiz_3_ans":# quiz_3 (채점) 메세지 전송
             print("--quiz_3_ans--")
             fail, send_message, score = evaluate_descriptive_answer(message_content, self.battle_quiz.quiz_3, self.battle_quiz.quiz_3_ans)
-            self.battle_room.total_score_2 += score
+            Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_2=F('total_score_2') + score)
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공한 경우만 
-                self.battle_room.now_stage_2 = "finish"
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "finish")
                 status = True # 트리거 활성화
 
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
@@ -465,11 +468,10 @@ class BattleConsumer(JsonWebsocketConsumer):
                 self.battle_room.is_ended = True
             else: # 현재 플레이어가 배틀은 먼저 끝냄 
                 message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2}  
-            
-            self.battle_room.now_stage_2 = "end"
         
-        self.battle_room.save()
+        self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
+
         if self.battle_room.now_stage_2 == "end":
             self.send_json({"type":"user", "message_content": message_content, "is_gpt": True, "disconnect":status})
             self.close()
