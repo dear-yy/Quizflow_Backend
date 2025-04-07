@@ -235,17 +235,16 @@ class BattleroomDisconnectViewAPI(APIView):
                 return Response({"error": "date형식 오류"}, status=status.HTTP_400_BAD_REQUEST)
             
             if battleroom.player_1.id==user_id:
-                Battleroom.objects.filter(pk=battleroom.id).update(end_date_1=end_date, now_stage_1="end")
+                Battleroom.objects.filter(pk=battleroom.id).update(end_date_1=end_date, now_stage_1="finish")
                 total_score = battleroom.total_score_1
             elif battleroom.player_2.id==user_id:
-                Battleroom.objects.filter(pk=battleroom.id).update(end_date_2=end_date, now_stage_2="end")
+                Battleroom.objects.filter(pk=battleroom.id).update(end_date_2=end_date, now_stage_2="finish")
 
                 total_score = battleroom.total_score_2
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
             
             battleroom.refresh_from_db()
-            # battleroom.save()
 
             print("[after]")
             print("사용자1", battleroom.player_1, "/ 종료시간", battleroom.end_date_1, "/ 단계", battleroom.now_stage_1)

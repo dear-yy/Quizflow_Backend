@@ -150,9 +150,9 @@ def select_article(player_1:User, player_2:User, query:str) -> Dict:
 
     num_results_per_site = 3    # 각 사이트당 결과 개수
     sites = [                   # 검색 가능 사이트 목록 
+        # "brunch.co.kr",
         "bbc.com",
         "khan.co.kr",
-        "brunch.co.kr",
         "hani.co.kr",
         "ytn.co.kr",
         "sisain.co.kr",
@@ -447,9 +447,9 @@ def find_recommend_article(df_google:pd.DataFrame, query:str="") -> pd.DataFrame
 def get_article_body(url:str, domain:str) -> str:
     # 본문 추출을 위한 사이트별 태그 정보#
     SITE_CLASS_MAPPING = {
+        # "brunch.co.kr": [{"tag": "div", "class": "wrap_body"}],
         "bbc.com": [{"tag": "main", "class": "bbc-fa0wmp"}],
         "khan.co.kr": [{"tag": "div", "class": "art_body"}],
-        "brunch.co.kr": [{"tag": "div", "class": "wrap_body"}],
         "hani.co.kr": [{"tag": "div", "class": "article-text"}],
         "ytn.co.kr": [{"tag": "div", "class": "vodtext"}],
         "sisain.co.kr": [{"tag": "div", "class": "article-body"}],
