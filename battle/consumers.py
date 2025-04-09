@@ -146,7 +146,6 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         self.createBattleQuiz()
         
         # 3. 설정 완료 메시지 전송 -> (프론트)클라이언트는 이 메세지 받으면, BattleConsumer 웹소켓으로 연결!
-        Battleroom.objects.filter(pk=self.battle_room.id).update(start_date = now())
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         print("배틀 설정 완료") # 디버깅
@@ -165,6 +164,7 @@ class BattleSetupConsumer(JsonWebsocketConsumer):
         # # 3. 아티클 본문 요약
         # recommended_article['body'] = summarize_article(recommended_article['body'])
 
+        # 임시
         recommended_article = {
              "title": "곰솔 쓰러진 곳에 5m 절벽이…기후위기가 해안 집어삼키다",
              "body": "녹색연합의 조사에 따르면, 한국의 해안에서 심각한 모래 침식이 발생하고 있으며, 이는 기후변화, 무분별한 골재 채취, 인공시설물 개발 등 여러 요인에 기인하고 있다. 조사된 54개 해안 중 18곳에서 2m 이상의 침식이 관찰되었고, 침식 저감 시설이 설치된 곳에서도 침식과 구조물의 무너짐이 발생했다. 특히 전남 신안군의 우전해변은 해송림이 바닷물에 의해 훼손되고 있다. 해수욕장 복원 사업에도 불구하고, 포항시는 최근 몇 년간 해수욕장을 재개장하지 못하고 있으며, 강릉과 삼척 지역의 해안 침식이 특히 심각하다. 사천진해변과 영진해변은 관광객이 방문함에도 불구하고 모래가 급속히 사라지고 있다. 해수면 상승과 다른 요인들이 결합하면 해안 침식이 더욱 심각해질 수 있으며, 이는 재난적 위기를 초래할 가능성이 있다. 한국 정부의 이 문제에 대한 인식은 의문스럽고, 기후위기가 특정 단계를 넘어서면 급격히 악화될 수 있다. 최근 서울에서의 열대야 현상은 기후위기가 일상에 미치는 영향을 잘 보여준다. 연안 해안을 무분별하게 개발할 경우, 백사장이 빠르게 사라지고 우리의 삶과 미래가 위협받을 수 있다.",
@@ -402,10 +402,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "end")
 
             if self.battle_room.end_date_2 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1}
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":1, "is_oppenent_ended":True}
                 Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
             else: # 현재 플레이어가 배틀은 먼저 끝냄
-                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1}
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": True, "player_2":False, "my_role":1, "is_oppenent_ended":False}
             
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
@@ -428,7 +428,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         if (self.check_opponent_end_status(2) is not None) and (self.popup_flage is False):
             self.send_json({"type":"user", "message_content":self.check_opponent_end_status(2) , "is_gpt": True, "disconnect":status})
             self.popup_flage = True
-            
+
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
         if self.battle_room.now_stage_2 == "article": # 아티클 정보 메세지 전송
@@ -479,10 +479,10 @@ class BattleConsumer(JsonWebsocketConsumer):
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "end")
 
             if self.battle_room.end_date_1 is not None: # 상대 플레이어가 배틀을 먼저 끝냄
-                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2}
+                message_content = {"message":"두 플레이어 모두 배틀 퀴즈를 완료하여, 배틀 퀴즈를 종료합니다.", "player_1": True, "player_2":True, "my_role":2, "is_oppenent_ended":True}
                 Battleroom.objects.filter(pk=self.battle_room.id).update(is_ended = True)
             else: # 현재 플레이어가 배틀은 먼저 끝냄 
-                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2}  
+                message_content = {"message":"상대 플레이어가 배틀 퀴즈를 완료하지 못했습니다. 잠시만 대기해주세요.", "player_1": False, "player_2":True, "my_role":2, "is_oppenent_ended":False}  
         
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
@@ -501,10 +501,10 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         if (my_role==1) and (self.battle_room.end_date_2 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
             my_status = self.battle_room.end_date_1 is not None # 종료 시 True
-            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":True, "my_role":1}
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":True, "my_role":1, "is_oppenent_ended":True}
         if (my_role==2) and (self.battle_room.end_date_1 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
             my_status = self.battle_room.end_date_2 is not None # 종료 시 True
-            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":False, "my_role":2}
+            message_content = {"message":"상대 플레이어 배틀 퀴즈를 완료했습니다.", "player_1": my_status, "player_2":False, "my_role":2, "is_oppenent_ended":True}
        
         return message_content
 

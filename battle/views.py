@@ -34,12 +34,9 @@ class MatchBattleViewAPI(APIView):
             start_date__date=today
         ).count()
 
-        # print("생성 카운팅", battle_generate_cnt) # 디버깅
-
         # if battle_generate_cnt >= 1:
         #     return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
     
-
         # Redis에서 대기열(Queue) 가져오기
         r = get_redis_connection("default") # djagno를 Redis 서버에 연결하고, 그 연결을 통해 대기열(Queue)에 접근
         user_id = request.user.id  # 로그인한 사용자의 ID를 가져옴
@@ -94,9 +91,9 @@ class MatchBattleViewAPI(APIView):
         # 두 플레이어의 User 객체 가져오기
         player_1 = User.objects.get(id=player_1_id)
         player_2 = User.objects.get(id=player_2_id)
-    
+        start_date = timezone.now()
         # 배틀룸 생성
-        battleroom = Battleroom.objects.create( player_1=player_1, player_2=player_2 )
+        battleroom = Battleroom.objects.create( player_1=player_1, player_2=player_2, start_date=start_date)
 
         return battleroom
 
@@ -169,13 +166,7 @@ class BattleroomListViewAPI(APIView):
             winner = 1
         elif battleroom.total_score_1 < battleroom.total_score_2: # 2번 플레이어 승 
             winner = 2
-        elif battleroom.total_score_1 == battleroom.total_score_2: 
-            # 시간 고려
-            if battleroom.end_date_1 < battleroom.end_date_2: # 1번 플레이어 승 
-                winner = 1
-            elif battleroom.end_date_1 > battleroom.end_date_2: # 2번 플레이어 승 
-                winner = 2
-
+            
         if winner == 1:
             return "win" if role == 1 else "lose"
         elif winner == 2:
@@ -205,19 +196,19 @@ class NewBattleroomViewAPI(APIView):
 
 class BattleroomDisconnectViewAPI(APIView): 
     """
-    배틀룸 종료 API
+    배틀룸 end_date 설정 API
     """
     permission_classes = [IsAuthenticated]
 
     # 데이터 일부 수정 patch 요청으로 처리 
     def patch(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
         user_id = request.user.id  # 로그인한 사용자 가져오기
-        end_date = request.data.get("end_date")  # "2025-03-18 13:25:29" 형태
+        end_date = datetime.now()  # 현재 시간으로 설정 # "2025-03-18 13:25:29" 형태
         total_score = 0 # 반영할 점수 초기화
 
         # 데이터 누락 확인
-        if not battleroom_id or not end_date or not user_id:
-            return Response({"error": "battle_id, user_id, end_date 데이터 누락"}, status=status.HTTP_400_BAD_REQUEST)
+        if not battleroom_id or not user_id:
+            return Response({"error": "battle_id, user_id 데이터 누락"}, status=status.HTTP_400_BAD_REQUEST)
         
         # 1. 배틀룸 종료 시간 설정
         battleroom = Battleroom.objects.get(pk=battleroom_id)
@@ -228,18 +219,11 @@ class BattleroomDisconnectViewAPI(APIView):
         if not battleroom:
             return Response({"error": "존재하지 않은 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
         else:     
-            # 포맷팅
-            try:
-                end_date = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                return Response({"error": "date형식 오류"}, status=status.HTTP_400_BAD_REQUEST)
-            
             if battleroom.player_1.id==user_id:
                 Battleroom.objects.filter(pk=battleroom.id).update(end_date_1=end_date, now_stage_1="finish")
                 total_score = battleroom.total_score_1
             elif battleroom.player_2.id==user_id:
                 Battleroom.objects.filter(pk=battleroom.id).update(end_date_2=end_date, now_stage_2="finish")
-
                 total_score = battleroom.total_score_2
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
@@ -250,14 +234,12 @@ class BattleroomDisconnectViewAPI(APIView):
             print("사용자1", battleroom.player_1, "/ 종료시간", battleroom.end_date_1, "/ 단계", battleroom.now_stage_1)
             print("사용자2", battleroom.player_2, "/ 종료시간", battleroom.end_date_2, "/ 단계", battleroom.now_stage_2)
 
-            
-
             # 2. battle점수 프로필 ranking_score 반영
             request.user.profile.ranking_score += total_score
             request.user.profile.save()
 
-
             return Response({"message": "end_date 설정 완료"}, status=status.HTTP_200_OK)
+        
 
 class BattleroomResultViewAPI(APIView): 
     """
@@ -265,7 +247,6 @@ class BattleroomResultViewAPI(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    # 데이터 일부 수정 patch 요청으로 처리 
     def get(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
         user_id = request.user.id  # 로그인한 사용자
         battleroom = Battleroom.objects.filter(pk=battleroom_id).first() #  first()를 통해 단일 객체
@@ -290,12 +271,6 @@ class BattleroomResultViewAPI(APIView):
             winner = 1
         elif battleroom.total_score_1 < battleroom.total_score_2: # 2번 플레이어 승 
             winner = 2
-        elif battleroom.total_score_1 == battleroom.total_score_2: 
-            # 시간 고려
-            if battleroom.end_date_1 < battleroom.end_date_2: # 1번 플레이어 승 
-                winner = 1
-            elif battleroom.end_date_1 > battleroom.end_date_2: # 2번 플레이어 승 
-                winner = 2
 
         if winner == 1:
             return "win" if role == 1 else "lose"
