@@ -19,7 +19,8 @@ class ProfileInline(admin.StackedInline):
 # 2. ProfileInline을 추가하여 기본 UserAdmin 클래스를 확장
     # User 관리 페이지를 열면, Profile에 대한 입력칸도 함께 추가
 class UserAdmin(BaseUserAdmin):  # 기본 UserAdmin을 상속받아 확장
-    inlines = (ProfileInline,)  # ProfileInline을 추가
+    inlines = (ProfileInline, )  # 튜플 형식 (,)!
+    list_display = ('id', 'username', 'email')
 
 # 3. 기존 User 모델의 기본 UserAdmin 등록 취소 후, 새롭게 확장한 UserAdmin 등록
 admin.site.unregister(User)  # Django 기본 User 모델의 기본 UserAdmin 등록 취소
