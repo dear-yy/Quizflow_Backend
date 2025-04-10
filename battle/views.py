@@ -253,7 +253,7 @@ class BattleroomResultViewAPI(APIView):
 
     def get(self, request, battleroom_id): # URL에서 battleroom_id 가져오기
         user_id = request.user.id  # 로그인한 사용자
-        battleroom = Battleroom.objects.filter(pk=battleroom_id).first() #  first()를 통해 단일 객체
+        battleroom = Battleroom.objects.filter(pk=battleroom_id, is_ended=True).first() #  first()를 통해 단일 객체
 
         if not battleroom:
             return Response({"error": "존재하지 않거나 진행중인 배틀룸입니다."}, status=status.HTTP_400_BAD_REQUEST)
