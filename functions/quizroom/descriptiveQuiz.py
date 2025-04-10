@@ -19,23 +19,24 @@ evaluate_descriptive_answer
 '''
 
 def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
-
-    while True:  # RateLimitError가 발생하면 재시도
+    fail_cnt = 0
+    while fail_cnt<3:  # 최대 3번 재시도
         try:
-            # 아티클기반 퀴즈 생성은 위한 프롬프트
+            # 서술형 퀴즈 생성
             prompt_quiz = f"""
-            당신은 '서술형 퀴즈 생성기'라는 역할을 맡게 됩니다. 당신의 목표는 아티클 기반 서술형 퀴즈 생성입니다. 서술형 퀴즈 생성기는 주어진 아티클을 기반으로 해당 아티클의 주제 요약 퀴즈를 한문제 출제하세요.
-            ## 작업 순서
-              1. 아티클 분석: 제공된 아티클의 내용을 분석하고 핵심 내용과 중요 포인트를 파악한다.
-              2. 퀴즈 출제: 아티클의 주요 내용을 기반으로 해당 아티클의 주제 요약에 대한 퀴즈를 한문장으로 한 문제 출제한다.
-            ## 주의사항
-              - 항상 아티클의 내용을 기반으로 객관적인 문제를 출제하세요.
-              - **한 개의 퀴즈만** 출제하세요.
-            ## 아티클: {article_summary}
-            ## 출력 형식 
-                문제: 문제 지문
+                당신은 '서술형 퀴즈 생성기'라는 역할을 맡게 됩니다. 당신의 목표는 아티클 기반 서술형 퀴즈 생성입니다.
+                서술형 퀴즈 생성기는 주어진 아티클을 기반으로 해당 아티클의 주제 요약 퀴즈를 한문제 출제하세요.
+                ## 작업 순서
+                  1. 아티클 분석: 제공된 아티클의 내용을 분석하고 핵심 내용과 중요 포인트를 파악한다.
+                  2. 퀴즈 출제: 아티클의 주요 내용을 기반으로 해당 아티클의 주제 요약에 대한 퀴즈를 한문장으로 한 문제 출제한다.
+                ## 주의사항
+                  - 항상 아티클의 내용을 기반으로 객관적인 문제를 출제하세요.
+                  - 아티클에 존재하지 않은 정보는 퀴즈 출제에 반영하지 않습니다.
+                  - **한 개의 퀴즈만** 출제하세요.
+                ## 아티클: {article_summary}
+                ## 출력 형식 
+                    문제: 문제 지문
             """
-
             # Open API 호출
             response_quiz = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
@@ -48,18 +49,21 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
             )
             quiz = response_quiz["choices"][0]["message"]["content"].strip()
 
-            # 모범 답안 생성을 위한 프롬프트
+
+            # 모범 답안 생성
             prompt_answer = f"""
-            당신은 '모범 답안 생성기'라는 역할을 맡게 됩니다. 모범 답안 생성기는 주어진 아티클을 기반으로 주어진 퀴즈 적합한 한 개의 모범 답안을 한 개 작성하세요.
-            ## 작업 순서
-              1. 아티클과 퀴즈 분석: 제공된 아티클과 퀴즈에 내용을 분석한다.
-              2. 모범 답안 생성: 주어진 아티클 기반으로 퀴즈에 대한  **한 개의 모범 답안**을  모범 답안을 2줄로 생성한다.
-            ## 주의사항
-              - 항상 아티클과 퀴즈 출제 내용을 기반으로 적절한 모범 답안을 출력하세요.
-              - **한 개의 모범 답안만** 작성하세요.
-            아티클: {article_summary}
-            퀴즈: {quiz}
-            모범 답안:
+                당신은 '모범 답안 생성기'라는 역할을 맡게 됩니다.
+                모범 답안 생성기는 주어진 아티클을 기반으로 주어진 퀴즈에 적합한 모범 답안을 한 개 작성하세요.
+                ## 작업 순서
+                  1. 아티클 분석: 제공된 아티클 내용을 분석하고 핵심 내용과 중요 포인트를 파악한다.
+                  2. 퀴즈 문제 분석: 아티클을 기반으로 퀴즈 문제를 분석하여, 퀴즈 문제가 요구하는 핵심 내용을 파악한다. 
+                  3. 모범 답안 생성: 분석 내용을 통해 아티클 기반으로 퀴즈에 대한  **한 개의 모범 답안**을 2줄로 생성한다.
+                ## 주의사항
+                  - 항상 아티클과 퀴즈 출제 내용을 기반으로 적절한 모범 답안을 출력하세요.
+                  - **한 개의 모범 답안만** 작성하세요.
+                ## 아티클: {article_summary}
+                ## 퀴즈: {quiz}
+                모범 답안:
             """
             # Open API 호출
             response_answer = openai.ChatCompletion.create(
@@ -75,50 +79,52 @@ def generate_descriptive_quiz(article_summary)-> Tuple[str, str]:
 
             return quiz, model_answer
 
-        except openai.error.RateLimitError:  
+        except openai.error.RateLimitError:
+            fail_cnt += 1  
             print("Rate limit reached. Retrying in 40 seconds...")
             time.sleep(40)
 
 
 
 def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, dict, dict, int]:
-    """
-    GPT를 사용하여 사용자 답변을 평가합니다.
-    """
     # 오류 발생 여부
     fail = False
     evaluation_result = None
     
     prompt_evaluation = f"""
-    당신은 '서술형 퀴즈 평가자'라는 역할을 맡게 됩니다. 서술형 퀴즈 평가자는 주어진 평가기준을 기반으로 사용자의 답변을 평가하여 점수를 도출하고 사용자 답변에 대한 피드백을 제공합니다.
-    즉, 당신의 목표는 모범 답안 기반 사용자의 작성 답안을 정확하게 평가하고 사용자 답변에 대해 이해도와 개선점이라는 피드백을 생성하는 것입니다.
-    아래는 사용자가 작성한 서술형 퀴즈 답변입니다. 또한 퀴즈와 모범 답안을 참고하여, 답변을 평가하고 점수를 도출하고 개선점과 이해도에 대한 피드백을 작성하세요.
+        당신은 '서술형 퀴즈 평가자'라는 역할을 맡게 됩니다.
+        서술형 퀴즈 평가자는 주어진 평가기준을 기반으로 사용자의 답변을 평가하여 점수를 도출하고 사용자 답변에 대한 피드백을 제공합니다.
+        즉, 당신의 목표는 모범 답안 기반 사용자의 작성 답안을 정확하게 평가하고 사용자 답변에 대해 이해도와 개선점이라는 피드백을 생성하는 것입니다.
+        퀴즈와 모범 답안 정보를 참고하여, 퀴즈에 대한 사용자 답변을 평가하고 점수를 도출하고 개선점과 이해도에 대한 피드백을 작성하세요.
 
-    [퀴즈]: {quiz}
-    [모범 답안]: {model_answer}
-    [사용자 답변]: {user_answer}
+        [퀴즈]: {quiz}
+        [모범 답안]: {model_answer}
+        [사용자 답변]: {user_answer}
 
-    ##평가 기준:
-    1) 모범 답안과 비교해서 사용자 답안이 핵심 내용을 포함했음 (2점 부여)
-    2) 사용자 답안이 모범 답안에 들어간 단어를 하나라도 사용했음 (1점 부여)
-    3) 사용자 답안이 모범 답안의 의도를 왜곡하지 않았고 객관성 유지했음 (1점 부여)
-    4) 사용자 답안이 2문장 이내로 작성됐음 (1점 부여)
-    5) 사용자 답안이 사실과 다른 내용을 포함하지 않았음 (1점 부여)
+        ## 평가 기준:
+            1) 모범 답안과 비교해서 사용자 답안이 핵심 내용을 포함했음 (2점 부여)
+            2) 사용자 답안이 모범 답안에 들어간 단어를 하나라도 사용했음 (1점 부여)
+            3) 사용자 답안이 모범 답안의 의도를 왜곡하지 않았고 객관성 유지했음 (1점 부여)
+            4) 사용자 답안이 2문장 이내로 작성됐음 (1점 부여)
+            5) 사용자 답안이 사실과 다른 내용을 포함하지 않았음 (1점 부여)
 
-    점수를 각 기준에 따라 합산하여 총점(6점 만점)을 부여하고, 각 기준에 대한 이해도 피드백과 개선점 피드백을 작성하세요.
+            점수를 각 기준에 따라 합산하여 총점(6점 만점)을 부여하세요.
 
-    ##최종 출력 형식:
-    {{
-      "total_score": 0,
-      "feedback": {{
-        "understanding_feedback": "사용자의 이해도에 대한 피드백",
-        "improvement_feedback": "사용자가 개선할 점에 대한 피드백"
-      }}
-    }}
+        ##최종 출력 형식:
+            {{
+            "total_score": 0,
+            "feedback": {{
+            "understanding_feedback": "사용자 답변 기반 이해도에 대한 피드백",
+            "improvement_feedback": "사용자 답변 기반 개선할 점에 대한 피드백"
+            }}
+        }}
     """
 
-    while True:  # RateLimitError가 발생하면 재시도
+    fail_cnt = 0
+    while fail_cnt < 3:  # 최대 3번 재시도
         try:
+            fail = False
+
             # GPT 호출
             response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
@@ -143,29 +149,32 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
             return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
 
         except openai.error.RateLimitError:  
+            fail_cnt += 1
             print("Rate limit reached. Retrying in 40 seconds...")
             time.sleep(40)
 
-        except UnicodeDecodeError as e:  # 유니코드 디코딩 오류 발생 시
+        except UnicodeDecodeError as e:  # 유니코드 디코딩 오류 발생
             print(f"유니코드 디코딩 오류 발생: {e}") 
             fail = True
             break # 루프 종료
 
-        except json.JSONDecodeError as e: # JSON 디코딩 오류 발생 시
+        except json.JSONDecodeError as e: # JSON 디코딩 오류 발생
             print(f"JSON 디코딩 오류 발생: {e}")
             print("GPT 응답:", evaluation_result)  # 응답 내용 확인
             fail = True
             break  #  루프 종료
     
-    if not isinstance(evaluation_result["total_score"], int): # 정수가 아니면
+    if not isinstance(evaluation_result["total_score"], int): # 정수 변환
         fail = True
 
     # 처리 실패시 
-    evaluation_result = {
-        "total_score": 0,
-        "feedback": {
-            "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패",
-            "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
+    if fail is True:
+        evaluation_result = {
+            "total_score": 0,
+            "feedback": {
+                "understanding_feedback": "JSON 변환 오류로 이해도 피드백 생성 실패",
+                "improvement_feedback": "JSON 변환 오류로 개선점 피드백 생성 실패"
+            }
         }
-    }
+
     return fail, evaluation_result["feedback"] , evaluation_result["total_score"]
