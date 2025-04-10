@@ -347,7 +347,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         if (self.check_end_status(1)[1] is True) and (self.popup_flage is False): # 팝업 트리거 메세지
-            self.send_json({"type":"system", "am_i_ended":self.check_end_status(1)[0], "is_oppenent_ended":self.check_end_status(1)[1], "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended":self.check_end_status(1)[0], "is_opponent_ended":self.check_end_status(1)[1], "is_gpt": True, "disconnect":status})
             self.popup_flage = True
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
@@ -394,8 +394,8 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_1 == "end": 
-            am_i_ended , is_oppenent_ended = self.check_end_status(1)
-            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
+            am_i_ended , is_opponent_ended = self.check_end_status(1)
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
@@ -411,7 +411,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
         if (self.check_end_status(2)[1] is True) and (self.popup_flage is False): # 팝업 트리거 메세지
-            self.send_json({"type":"system", "am_i_ended":self.check_end_status(2)[0], "is_oppenent_ended":self.check_end_status(2)[1], "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended":self.check_end_status(2)[0], "is_opponent_ended":self.check_end_status(2)[1], "is_gpt": True, "disconnect":status})
             self.popup_flage = True
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
@@ -458,8 +458,8 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_2 == "end":
-            am_i_ended , is_oppenent_ended = self.check_end_status(2)
-            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
+            am_i_ended , is_opponent_ended = self.check_end_status(2)
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
@@ -469,17 +469,17 @@ class BattleConsumer(JsonWebsocketConsumer):
 
     def check_end_status(self, my_role): # 팝업용
         am_i_ended = False
-        is_oppenent_ended = False
+        is_opponent_ended = False
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         if (my_role==1) and (self.battle_room.end_date_2 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
             am_i_ended = self.battle_room.end_date_1 is not None # 종료 시 True
-            is_oppenent_ended = self.battle_room.end_date_2 is not None 
+            is_opponent_ended = self.battle_room.end_date_2 is not None 
         if (my_role==2) and (self.battle_room.end_date_1 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
             am_i_ended = self.battle_room.end_date_2 is not None # 종료 시 True
-            is_oppenent_ended = self.battle_room.end_date_1 is not None 
+            is_opponent_ended = self.battle_room.end_date_1 is not None 
 
-        return am_i_ended, is_oppenent_ended
+        return am_i_ended, is_opponent_ended
 
 
 
