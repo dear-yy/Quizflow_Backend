@@ -227,14 +227,17 @@ class BattleroomDisconnectViewAPI(APIView):
                 total_score = battleroom.total_score_2
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
-            
-            battleroom.refresh_from_db()
 
             print("[after]")
             print("사용자1", battleroom.player_1, "/ 종료시간", battleroom.end_date_1, "/ 단계", battleroom.now_stage_1)
             print("사용자2", battleroom.player_2, "/ 종료시간", battleroom.end_date_2, "/ 단계", battleroom.now_stage_2)
+            
+            # 2. is_ended로 배틀 종료 
+            battleroom.refresh_from_db()
+            if (battleroom.end_date_1 is not None) and (battleroom.end_date_2 is not None):
+                battleroom.is_ended = True
 
-            # 2. battle점수 프로필 ranking_score 반영
+            # 3. battle점수 프로필 ranking_score 반영
             request.user.profile.ranking_score += total_score
             request.user.profile.save()
 

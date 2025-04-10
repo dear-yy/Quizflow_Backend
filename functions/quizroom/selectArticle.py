@@ -10,6 +10,7 @@ from typing import List, Dict, Tuple
 from django.conf import settings
 from django.contrib.auth.models import User
 from quiz_room.models import Article
+
 # Django 프로젝트 절대 경로로 추가
 # 두 단계 위로 올라가서 루트 디렉토리(myquiz/)에 접근
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))  # __file__ : 현재 경로
