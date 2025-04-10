@@ -347,7 +347,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         if (self.check_end_status(1)[1] is True) and (self.popup_flage is False): # 팝업 트리거 메세지
-            self.send_json({"type":"user", "am_i_ended":self.check_end_status(1)[0], "is_oppenent_ended":self.check_end_status(1)[1], "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended":self.check_end_status(1)[0], "is_oppenent_ended":self.check_end_status(1)[1], "is_gpt": True, "disconnect":status})
             self.popup_flage = True
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
@@ -374,7 +374,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_1=F('total_score_1') + score)
             if fail is False: # 성공 
                 Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_3")
-
+ 
         elif self.battle_room.now_stage_1 == "quiz_3":# quiz_3 (문제) 메세지 전송 
             send_message = self.battle_quiz.quiz_3
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "quiz_3_ans")
@@ -395,7 +395,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         if self.battle_room.now_stage_1 == "end": 
             am_i_ended , is_oppenent_ended = self.check_end_status(1)
-            self.send_json({"type":"user", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
@@ -411,7 +411,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
         if (self.check_end_status(2)[1] is True) and (self.popup_flage is False): # 팝업 트리거 메세지
-            self.send_json({"type":"user", "am_i_ended":self.check_end_status(2)[0], "is_oppenent_ended":self.check_end_status(2)[1], "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended":self.check_end_status(2)[0], "is_oppenent_ended":self.check_end_status(2)[1], "is_gpt": True, "disconnect":status})
             self.popup_flage = True
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
@@ -459,7 +459,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         if self.battle_room.now_stage_2 == "end":
             am_i_ended , is_oppenent_ended = self.check_end_status(2)
-            self.send_json({"type":"user", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_oppenent_ended": is_oppenent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
         if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계

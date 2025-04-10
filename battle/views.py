@@ -235,7 +235,8 @@ class BattleroomDisconnectViewAPI(APIView):
             # 2. is_ended로 배틀 종료 
             battleroom.refresh_from_db()
             if (battleroom.end_date_1 is not None) and (battleroom.end_date_2 is not None):
-                battleroom.is_ended = True
+                Battleroom.objects.filter(pk=battleroom.id).update(is_ended = True)
+                battleroom.refresh_from_db()
 
             # 3. battle점수 프로필 ranking_score 반영
             request.user.profile.ranking_score += total_score
