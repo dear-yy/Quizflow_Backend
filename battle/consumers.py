@@ -2,6 +2,7 @@
 
 import time
 import json
+import asyncio
 from django.db.models import F
 from django.utils.timezone import now # 시간 활성화
 from asgiref.sync import async_to_sync # 비동기 그룹 메시지 전송을 동기 방식으로 변환
@@ -404,7 +405,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_1()
         
 
-    async def process_stage_player_2(self, receive_message_content=""):   
+    def process_stage_player_2(self, receive_message_content=""):   
         print("--", self.battle_room.now_stage_2 ,"--")
 
         send_message =  "" # 초기화
@@ -482,10 +483,34 @@ class BattleConsumer(JsonWebsocketConsumer):
             is_opponent_ended = self.battle_room.end_date_1 is not None 
 
         return am_i_ended, is_opponent_ended
+
+
+'''
+    [4/14 작업중]
+   # async def check_finish(self, my_role):
+    #     try_cnt = 0
+
+    #     while try_cnt < 5:
+    #             self.battle_room.refresh_from_db() # 최신 상태로 동기화
+                
+    #             if self.battle_room.now_stage_2 == "finish":
+    #                 return True
+                    
+    #             else:
+    #                 try_cnt += 1
+    #                 time.sleep(2)
+
+# if status is True: # disconnect 호출 요청 [서버->프론트]
     
-    # def check_finish(self, my_role):
+#             try_cnt = 0
+'''
+ 
+
+            
 
 
+
+# process 함수 async 함수로 변경하고, await sleep으로 변경
 
 '''
 
