@@ -395,7 +395,6 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_1 == "end": 
-            time.sleep(8)
             am_i_ended , is_opponent_ended = self.check_end_status(1)
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
@@ -405,7 +404,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.process_stage_player_1()
         
 
-    def process_stage_player_2(self, receive_message_content=""):   
+    async def process_stage_player_2(self, receive_message_content=""):   
         print("--", self.battle_room.now_stage_2 ,"--")
 
         send_message =  "" # 초기화
@@ -459,7 +458,6 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_2 == "end":
-            time.sleep(8)
             am_i_ended , is_opponent_ended = self.check_end_status(2)
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
@@ -468,7 +466,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_2()
 
-
+        
             
 
     def check_end_status(self, my_role): # 팝업용
@@ -485,7 +483,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         return am_i_ended, is_opponent_ended
     
-    def check_finish(self, my_role):
+    # def check_finish(self, my_role):
 
 
 
