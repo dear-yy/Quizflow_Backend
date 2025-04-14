@@ -397,7 +397,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         if self.battle_room.now_stage_1 == "end": 
             am_i_ended , is_opponent_ended = self.check_end_status(1)
-            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status, "step":"end"}) # (테스트용 -> 마지막 필드)
             self.close()
 
         if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
@@ -470,7 +470,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         
         if self.battle_room.now_stage_2 == "end":
             am_i_ended , is_opponent_ended = self.check_end_status(2)
-            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
+            self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status, "step":"end"}) # (테스트용 -> 마지막 필드)
             self.close()
 
         if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
@@ -505,6 +505,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
     def check_finish(self, my_role):
         try_cnt = 0
+
         while try_cnt < 5:
             self.battle_room.refresh_from_db() # 최신 상태로 동기화
             if my_role == 1 and self.battle_room.now_stage_1 == "finish":
@@ -514,6 +515,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             else:
                 try_cnt += 1
                 time.sleep(2)
+
         return False
 
 '''
