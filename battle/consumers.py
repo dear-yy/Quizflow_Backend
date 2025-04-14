@@ -400,6 +400,15 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
+        if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
+            if self.check_finish(1) == False:
+                print("⚠️ disconnect API 처리 실패  -> 강제 변경(임시)")
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "finish") 
+                self.battle_room.refresh_from_db() # 최신 상태로 동기화
+            else: 
+                print("✅ disconnect API 처리 성공")
+            self.process_stage_player_1()
+
         if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_1()
@@ -458,10 +467,20 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
+        
         if self.battle_room.now_stage_2 == "end":
             am_i_ended , is_opponent_ended = self.check_end_status(2)
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
+
+        if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
+            if self.check_finish(2) == False:
+                print("⚠️ disconnect API 처리 실패  -> 강제 변경(임시)")
+                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "finish") 
+                self.battle_room.refresh_from_db() # 최신 상태로 동기화
+            else: 
+                print("✅ disconnect API 처리 성공")
+            self.process_stage_player_2()
 
         if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
             time.sleep(2)  # 2초 동안 대기
@@ -484,25 +503,26 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         return am_i_ended, is_opponent_ended
 
+    def check_finish(self, my_role):
+        try_cnt = 0
+        while try_cnt < 5:
+            self.battle_room.refresh_from_db() # 최신 상태로 동기화
+            if my_role == 1 and self.battle_room.now_stage_1 == "finish":
+                return True         
+            elif my_role == 2 and self.battle_room.now_stage_2 == "finish":
+                return True         
+            else:
+                try_cnt += 1
+                time.sleep(2)
+        return False
 
 '''
     [4/14 작업중]
-   # async def check_finish(self, my_role):
-    #     try_cnt = 0
-
-    #     while try_cnt < 5:
-    #             self.battle_room.refresh_from_db() # 최신 상태로 동기화
-                
-    #             if self.battle_room.now_stage_2 == "finish":
-    #                 return True
-                    
-    #             else:
-    #                 try_cnt += 1
-    #                 time.sleep(2)
-
-# if status is True: # disconnect 호출 요청 [서버->프론트]
     
-#             try_cnt = 0
+
+# 
+    
+
 '''
  
 
