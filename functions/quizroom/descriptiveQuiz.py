@@ -125,7 +125,7 @@ def evaluate_descriptive_answer(user_answer, quiz, model_answer)-> Tuple[bool, d
         try:
             fail = False
 
-            # GPT 호출
+            # Open API 호출
             response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[

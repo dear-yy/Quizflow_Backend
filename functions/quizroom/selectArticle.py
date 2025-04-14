@@ -3,6 +3,7 @@ import sys
 import openai
 import time
 import json
+import re
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -111,25 +112,24 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
             keywords = keywords.replace("'", "\"") # JSON 형식에 맞게 수정
             try:
                 keywords_dict = json.loads(keywords)
-                # (딕셔너리 value -> 리스트) 변환
-                keywords_list = list(keywords_dict.values())
+                keywords_list = list(keywords_dict.values()) # (딕셔너리 value -> 리스트) 변환
             except json.JSONDecodeError as e:
                 fail_cnt += 1
-                print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
-                continue  # 재시도: while문 처음부터
+                print(f"🔍 JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
+                continue  # 재시도
 
             # 추출된 키워드 리스트 반환 
             return keywords_list
 
         except openai.error.RateLimitError:
             fail_cnt += 1
-            print("Rate limit에 도달했습니다. 40초 후 재시도합니다...")
+            print("🔍 Rate limit에 도달했습니다. 40초 후 재시도합니다...")
             time.sleep(40)
         except Exception as e:
-            print(f"Error during OpenAI API call: {e}")
+            print(f"🔍 Error during OpenAI API call: {e}")
             return []
 
-    print("3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
+    print("⚠️ 3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
     return []  # 3번 이상 실패하면 빈 리스트 반환
 
 
@@ -201,13 +201,13 @@ def select_article(user:User, query:str, user_feedback_list:list) -> Dict:
             # 본문이 유효한지 확인
             # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
             if recommend_article_body and len(recommend_article_body.strip()) > 0:
-                print("추천 아티클 URL:", recommend_article_url)
+                print("✅ 추천 아티클 URL:", recommend_article_url)
                 break  # 본문 추출 성공 시 루프 종료
     
     return  {
         "title": recommend_article_title,
         "body": recommend_article_body, 
-        "url": recommend_article_url,
+        "url": recommend_article_url, 
         "reason": recommend_article_reason, 
         "retry_extracted_keywords": extracted_keywords # 키워드 재추출시, DB에 반영하기 위함 
     }
@@ -244,8 +244,8 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
 
                 # 요청 성공 여부 확인
                 if response.status_code != 200: # Get 요청 실패
-                    print(f"{site}에 대한 HTTP GET 요청 실패: {response.status_code}, Message: {response.text}")
-                    break # while 루프 종료
+                    print(f"⚠️ {site}에 대한 HTTP GET 요청 실패: {response.status_code}, Message: {response.text}")
+                    break 
                 
                 # API 응답 데이터 처리(요청 성공시 작동)
                 data = response.json() # API의 응답 데이터 -> JSON 형식
@@ -254,8 +254,8 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
                 # 검색 결과 항목 존재 여부 확인
                 search_items = data.get("items") # 검색 결과 항목들 가져오기
                 if not search_items: # 만약 검색 결과가 없으면
-                    print(f"No more results found for site {site}.")
-                    break # while 루프 종료
+                    print(f"🔍 No more results found for site {site}.")
+                    break 
 
                 # 검색 결과 순회(기사 정보 추출)
                 for search_item in search_items:
@@ -289,7 +289,7 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
                     start_index += 10 # start_index를 증가시킴(num을 10으로 설정해뒀기 때문)
 
             except Exception as e:
-                print(f"Error occurred for site {site}: {e}")
+                print(f"⚠️ Error occurred for site {site}: {e}")
                 break
 
     # 모든 사이트의 결과를 하나의 DataFrame으로 결합
@@ -310,9 +310,10 @@ def Google_API(user:User, query:str, num_results_per_site:int, sites:list[str]) 
 def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.DataFrame:
     # 초기화
     recommend_article = pd.DataFrame(columns=["Title", "Description", "Link", "Domain"])
- 
+    fail = 0
+
     # 추천 정보 추출 프로세스
-    while True:
+    while fail < 6:
         # 추천 아티클 탐색
         recommend_article, reason = find_recommend_article(df, user_feedback) 
 
@@ -327,21 +328,21 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
             domain = recommend_article.iloc[0]["Domain"]  # Domain 추출
             title = recommend_article.iloc[0]["Title"]  # Title 추출
         except IndexError as e:
-            print(f"추천된 아티클에서 데이터를 추출할 수 없습니다: {e}")
+            print(f"🔍 추천된 아티클에서 데이터를 추출할 수 없습니다: {e}")
             recommend_article.drop(recommend_article.index[0], inplace=True) # recommend_article에서 삭제
             df.drop(df[df["Link"] == url].index, inplace=True) # df에서 삭제
+            fail += 1
             continue  # 새로운 아티클을 탐색을 위해 while 루프 재시작
 
         # 본문(article body) 추출
         article_body = get_article_body(url, domain)  # 본문 추출 함수 호출
         
-        if ( # 본문이 없거나 본문 길이가 5문장 이하인 경우 처리
-            not article_body
-            or len([s for s in article_body.split(".") if s.strip()]) <= 5
-        ):
-            print(f"본문이 없는 아티클 (또는 본문이 5문장 이하)이므로 데이터를 추출할 수 없습니다.")
+        # 본문이 없거나 본문 길이가 5문장 이하인 경우 처리
+        if ( not article_body or len([s for s in article_body.split(".") if s.strip()]) <= 5 ):
+            print(f"🔍 본문이 없는 아티클 (또는 본문이 5문장 이하)이므로 데이터를 추출할 수 없습니다.")
             recommend_article.drop(recommend_article.index[0], inplace=True)# recommend_article에서 삭제
             df.drop(df[df["Link"] == url].index, inplace=True) # df에서 삭제
+            fail += 1
             continue   # 새로운 아티클을 탐색을 위해 while 루프 재시작
 
         # 본문이 유효할 경우 DataFrame 생성 및 반환
@@ -349,19 +350,25 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> pd.
             [[title, url, article_body, reason]],
             columns=["Title", "URL", "Body", "Reason"]
         )
-    
         return info_for_the_article
+    
+    info_for_the_article = pd.DataFrame(
+            [["실패", "실패", "실패", "실패"]],
+            columns=["Title", "URL", "Body", "Reason"]
+    )
+    return info_for_the_article
     
 
 
 # 추천 아티클 결정#
 def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> Tuple[pd.DataFrame, str]:
+    fail = 0
     # 아티클 목록에 index 포함
     article_titles = df_google["Title"].tolist()
     article_descriptions = df_google["Description"].tolist()
     article_indices = df_google.index.tolist()  # DataFrame의 index를 리스트로 저장
 
-    while True:  # RateLimitError 발생 시 재시도하도록
+    while fail < 3:  
         try:
             # Open API 호출
                 # 토큰 초과 에러 발생해서, title 정보는 제외함!
@@ -388,12 +395,8 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                    },
-                    {
-                        "role": "user",
+                    { "role": "system", "content": system_prompt,},
+                    {   "role": "user",
                         "content": (
                             f"사용자 피드백: {user_feedback_list}\n\n"
                             "아티클 목록 (index 포함):\n"
@@ -419,14 +422,14 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
 
             # GPT의 응답 분석 
             content = response["choices"][0]["message"]["content"]
-            # (JSON -> 딕셔너리) 변환
-            content = content.replace("'", "\"") # JSON 형식에 맞게 수정
+            # (JSON -> 딕셔너리) 변환 작업
+            content = re.sub(r'"reason":\s*"([^"]*?)"', escape_inner_quotes, content)
             try:
                 content_dict = json.loads(content)
             except json.JSONDecodeError as e:
-                print(f"JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
-                return (pd.DataFrame(), "")
-                # continue  # 재시도: while문 처음부터
+                print(f"🔍 JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
+                fail += 1 
+                continue
 
             # content 존재 검증
             if not isinstance(content_dict["index"], int): 
@@ -438,7 +441,7 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             recommended_index = int(content_dict["index"])  
             # index가 DataFrame에 존재하는지 확인
             if recommended_index not in df_google.index:
-                print(f"추천된 index({recommended_index})는 존재하지 않습니다.")
+                print(f"🔍 추천된 index({recommended_index})는 존재하지 않습니다.")
                 return (pd.DataFrame(), "")
 
             # 해당 index로 행(해당 기사 정보) 반환
@@ -447,10 +450,14 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             return (recommended_article, reason) # 결과 DataFrame 형태로 반환
 
         except openai.error.RateLimitError:
-            print("Rate limit reached. Retrying in 40 seconds...")
+            print("🔍 Rate limit reached. Retrying in 40 seconds...")
+            fail += 1
             time.sleep(40)  # 40초 지연 후 재시도
             continue  #
+
+    return (pd.DataFrame(), "") # 최대 3번 처리 실패시 
     
+
 
 def get_article_body(url:str, domain:str) -> str:
     # 본문 추출을 위한 사이트별 태그 정보#
@@ -513,3 +520,11 @@ def get_article_body(url:str, domain:str) -> str:
     except Exception as e: # 본문 추출중 오류
         return None
 
+
+
+# 정규식: "key": "value"
+# key나 전체 구조에 있는 큰따옴표는 건드리면 안 되므로 value 내부만 바꿔야 함
+def escape_inner_quotes(match):
+    inner = match.group(1)
+    escaped = re.sub(r'"', r'\\"', inner)  # 큰따옴표 escape
+    return f'"reason": "{escaped}"'

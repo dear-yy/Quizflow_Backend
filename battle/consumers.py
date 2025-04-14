@@ -281,7 +281,9 @@ class BattleConsumer(JsonWebsocketConsumer):
                 self.process_stage_player_2()
 
         # 배틀룸 퀴즈 진행 중 (퀴즈 답변 전송)
-        elif type=="user":  # 기본 세팅 후
+        elif type=="user" or type=="disconnect":  # 기본 세팅 후
+            print("🔍 ", type, "메세지[프->백]")
+
             # 1. 사용자 답변 수신
             message_content = content_dict.get("message")
 
@@ -383,7 +385,6 @@ class BattleConsumer(JsonWebsocketConsumer):
             Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_1=F('total_score_1') + score)
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공
-                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "finish")
                 status = True # 종료 트리거 활성화
 
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지
@@ -394,11 +395,12 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_1 == "end": 
+            time.sleep(8)
             am_i_ended , is_opponent_ended = self.check_end_status(1)
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
-        if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
+        if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_1()
         
@@ -447,7 +449,6 @@ class BattleConsumer(JsonWebsocketConsumer):
             Battleroom.objects.filter(pk=self.battle_room.id).update(total_score_2=F('total_score_2') + score)
             send_message = send_message + f"({score}점)"
             if fail is False: # 성공 
-                Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "finish")
                 status = True # 종료 트리거 활성화
 
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
@@ -458,13 +459,16 @@ class BattleConsumer(JsonWebsocketConsumer):
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
 
         if self.battle_room.now_stage_2 == "end":
+            time.sleep(8)
             am_i_ended , is_opponent_ended = self.check_end_status(2)
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status})
             self.close()
 
-        if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3", "finish"]: # 직접 호출 필요 단계
+        if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_2()
+
+
             
 
     def check_end_status(self, my_role): # 팝업용
@@ -480,6 +484,8 @@ class BattleConsumer(JsonWebsocketConsumer):
             is_opponent_ended = self.battle_room.end_date_1 is not None 
 
         return am_i_ended, is_opponent_ended
+    
+    def check_finish(self, my_role):
 
 
 
