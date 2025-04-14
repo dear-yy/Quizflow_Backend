@@ -496,10 +496,10 @@ class BattleConsumer(JsonWebsocketConsumer):
         is_opponent_ended = False
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
-        if (my_role==1) and (self.battle_room.end_date_2 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
+        if my_role==1 : # 상대 플레이어가 배틀을 먼저 끝냄
             am_i_ended = self.battle_room.end_date_1 is not None # 종료 시 True
             is_opponent_ended = self.battle_room.end_date_2 is not None 
-        if (my_role==2) and (self.battle_room.end_date_1 is not None): # 상대 플레이어가 배틀을 먼저 끝냄
+        if my_role==2 : # 상대 플레이어가 배틀을 먼저 끝냄
             am_i_ended = self.battle_room.end_date_2 is not None # 종료 시 True
             is_opponent_ended = self.battle_room.end_date_1 is not None 
 

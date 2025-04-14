@@ -221,9 +221,11 @@ class BattleroomDisconnectViewAPI(APIView):
         else:     
             if battleroom.player_1.id==user_id:
                 Battleroom.objects.filter(pk=battleroom.id).update(end_date_1=end_date, now_stage_1="finish")
+                battleroom.refresh_from_db()
                 total_score = battleroom.total_score_1
             elif battleroom.player_2.id==user_id:
                 Battleroom.objects.filter(pk=battleroom.id).update(end_date_2=end_date, now_stage_2="finish")
+                battleroom.refresh_from_db()
                 total_score = battleroom.total_score_2
             else:
                 return Response({"error": "접근 불가능한 사용자 오류"}, status=status.HTTP_400_BAD_REQUEST)  
