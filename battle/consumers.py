@@ -391,6 +391,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         elif self.battle_room.now_stage_1 == "finish": # 종료 메세지
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_1}점 입니다."
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "end")
+            self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
@@ -463,6 +464,7 @@ class BattleConsumer(JsonWebsocketConsumer):
         elif self.battle_room.now_stage_2 == "finish": # 종료 메세지 
             send_message = f"{self.user.profile.nickname}님, 수고하셨습니다. 총 점수는 {self.battle_room.total_score_2}점 입니다."
             Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "end") 
+            self.battle_room.refresh_from_db() # 최신 상태로 동기화
         
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
         self.send_json({"type":"user", "message":send_message , "is_gpt": True, "disconnect":status})
