@@ -282,9 +282,7 @@ class BattleConsumer(JsonWebsocketConsumer):
                 self.process_stage_player_2()
 
         # 배틀룸 퀴즈 진행 중 (퀴즈 답변 전송)
-        elif type=="user" or type=="disconnect":  # 기본 세팅 후
-            print("🔍 ", type, "메세지[프->백]")
-
+        elif type=="user":  # 기본 세팅 후
             # 1. 사용자 답변 수신
             message_content = content_dict.get("message")
 
@@ -401,7 +399,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status, "step":"end"}) # (테스트용 -> 마지막 필드)
             self.close()
 
-        if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
+        if status is True: # disconnect 호출 요청 상태인 경우
             if self.check_finish(1) == False:
                 print("⚠️ disconnect API 처리 실패  -> 강제 변경(임시)")
                 Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_1 = "finish") 
@@ -410,7 +408,7 @@ class BattleConsumer(JsonWebsocketConsumer):
                 print("✅ disconnect API 처리 성공")
             self.process_stage_player_1()
 
-        if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
+        if self.battle_room.now_stage_1 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_1()
         
@@ -475,7 +473,7 @@ class BattleConsumer(JsonWebsocketConsumer):
             self.send_json({"type":"system", "am_i_ended": am_i_ended, "is_opponent_ended": is_opponent_ended, "is_gpt": True, "disconnect":status, "step":"end"}) # (테스트용 -> 마지막 필드)
             self.close()
 
-        if status is True: # disconnect 호출 요청 상태인 경우 [서버->프론트]
+        if status is True: # disconnect 호출 요청 상태인 경우
             if self.check_finish(2) == False:
                 print("⚠️ disconnect API 처리 실패  -> 강제 변경(임시)")
                 Battleroom.objects.filter(pk=self.battle_room.id).update(now_stage_2 = "finish") 
@@ -484,28 +482,28 @@ class BattleConsumer(JsonWebsocketConsumer):
                 print("✅ disconnect API 처리 성공")
             self.process_stage_player_2()
 
-        if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출 필요 단계
+        if self.battle_room.now_stage_2 in ["quiz_1", "quiz_2", "quiz_3"]: # 직접 호출
             time.sleep(2)  # 2초 동안 대기
             self.process_stage_player_2()
 
         
-            
 
-    def check_end_status(self, my_role): # 팝업용
+    def check_end_status(self, my_role): # 팝업용_플레이어 종료 여부
         am_i_ended = False
         is_opponent_ended = False
         self.battle_room.refresh_from_db() # 최신 상태로 동기화
 
-        if my_role==1 : # 상대 플레이어가 배틀을 먼저 끝냄
+        if my_role==1 :
             am_i_ended = self.battle_room.end_date_1 is not None # 종료 시 True
             is_opponent_ended = self.battle_room.end_date_2 is not None 
-        if my_role==2 : # 상대 플레이어가 배틀을 먼저 끝냄
+        if my_role==2 : 
             am_i_ended = self.battle_room.end_date_2 is not None # 종료 시 True
             is_opponent_ended = self.battle_room.end_date_1 is not None 
 
         return am_i_ended, is_opponent_ended
+    
 
-    def check_finish(self, my_role):
+    def check_finish(self, my_role): # disconect API 실행 완료 여부 파악 
         try_cnt = 0
 
         while try_cnt < 5:
@@ -520,21 +518,7 @@ class BattleConsumer(JsonWebsocketConsumer):
 
         return False
 
-'''
-    [4/14 작업중]
-    
-
-# 
-    
-
-'''
  
-
-            
-
-
-
-# process 함수 async 함수로 변경하고, await sleep으로 변경
 
 '''
 

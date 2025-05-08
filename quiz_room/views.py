@@ -28,7 +28,6 @@ class QuizroomsViewAPI(APIView):
 
         # 사용자의 '오늘' 등록된 퀴즈룸 개수 카운트
         quiz_generate_cnt = Quizroom.objects.filter(user=user, update_date__date=today).count()
-        # print("생성 퀴즈 카운트", quiz_generate_cnt) # 디버깅
 
         if quiz_generate_cnt >= 3:
             return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)

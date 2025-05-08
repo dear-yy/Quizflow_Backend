@@ -29,74 +29,55 @@ get_keywords_from_feedback
     - extract_keywords
 '''
 
-def get_keywords_from_feedback(user_feedback:str, user_feedback_list:list, keyword_list:list) -> Tuple[List[str], str]:
-    # 키워드 추출 (기사 검색어 설정)
-    query = " ".join(keyword_list)  # 검색어 # user_feedback이 빈 경우, 대체로 이전 키워드 활용
-    extracted_keywords = extract_keywords(query, user_feedback_list, max_keywords=3)
+def get_keywords_from_feedback(recent_user_feedback:str, user_feedback_list:list, keyword_list:list) -> Tuple[List[str], str]:
+    # 1. 키워드 추출
+    new_keyword_list = extract_keywords("", user_feedback_list)
+    
+    # 2. 추출 키워드 kewords_list에 연결 
+    keyword_list = keyword_list + new_keyword_list
 
-    # 키워드 기반 최종 검색어
-    if extracted_keywords:
-        query = " ".join(extracted_keywords)  # 추출된 키워드로 새 쿼리 
-        return (extracted_keywords, query)
-    else: # 추출된 키워드 없다면
-        return (None, None)  # 초기 쿼리 설정 필요
+    # 3. kewords_list의 요소 연결해서 search_query 구성(기사 검색어어) 
+    search_query = " ".join(keyword_list) 
 
+    return (new_keyword_list, search_query)
 
 # 키워드 추출
 def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> List:
-    """
-        query: 최종 검색어. (최신)user_feedback이 "NOFEEDBACK"일 경우 사용.
-        user_feedback_list : 사용자가 입력한 텍스트 내역.
-        max_keywords : 반환할 최대 키워드 수.
-        Returns value: 추출된 SEO 키워드 리스트.
-    """
     fail_cnt = 0  # 실패 카운트 초기화
-
+    recent_user_feedback = user_feedback_list[-1]
     while fail_cnt < 3:
         try:
-            # system(gpt) 역할 프롬프팅
+            # SEO 최적화된 키워드란 -> 검색 엔진에서 사람들이 자주 검색하는 단어( 많은 사람들이 검색할 가능성이 높은은 키워드)
             system_prompt = f"""
-            당신의 역할은 SEO(검색 엔진 최적화)에 최적화된 키워드를 생성하는 것입니다.
+                당신의 역할은 **사용자 피드백을 바탕으로 SEO(검색 엔진 최적화)에 최적화된 키워드 3개를 생성**하는 것입니다.
 
-            1. **키워드 생성 조건**:
-              - 최신 피드백(리스트에서 인덱스가 높은 순서)을 가장 우선적으로 고려하여 검색 가능성이 높은 핵심 키워드를 추출하세요.
-              - 최신 피드백이 'NOFEEDBACK'인 경우:
-                - 기존 쿼리(query)를 참고하여 더 세부적이고 구체적인 키워드를 생성하세요.
-                - 기존 쿼리와 중복되지 않는 새로운 키워드를 생성해야 합니다.
-              - 사용자 피드백 리스트가 전부 'NOFEEDBACK'인 경우:
-                다음 주제 중 하나를 무작위로 선택하세요:
-                  <역사,철학,과학,예술,기술,문화,건강>
-                - 선택한 주제를 기반으로 검색 가능성이 높은 키워드를 생성하세요.
-              - 쿼리가 'NOARTICLE'로 끝나면:
-                - 쿼리의 마지막을 제외하고 나머지 내용을 기반으로 더 일반적이고 포괄적인 키워드를 생성하세요.
+                # 1 키워드 생성 전략:
+                    - 가장 최근 피드백({recent_user_feedback})을 **중심으로** 삼아, 그 의미를 더 구체화하고 확장할 수 있는 키워드를 생성하세요.
+                    - 과거 피드백 리스트({user_feedback_list})의 요소들을 함께 고려하여 **최근 피드백과 의미적으로 연결**하거나 **심화된 방향**으로 발전시킬 수 있는 키워드를 생성하세요.
+                        예: 과거 피드백="환경 오염", 가장 최근 피드백="산불" → 생성 키워드: `"산불 원인"`, `"환경 오염 피해 사례"`, `"기후변화 산불"`
 
-            2. **키워드 생성 규칙**:
-              - 검색 엔진에서 자주 검색될 가능성이 높은 단어를 선택하세요.
-              - 명사 중심의 구체적이고 직관적인 키워드를 사용하세요.
-              - 동일한 단어나 중복된 키워드는 제외하세요.
-              - 키워드의 개수는 {max_keywords}개 입니다
+                # 2 키워드 추출 규칙:
+                    - 생성하는 키워드는 **검색 엔진에서 자주 검색될 가능성이 높은** **명사 중심의 구체적 표현**이어야 합니다.
+                    - 명확하고 검색 친화적인 단어로 구성하세요.
+                    - 가능한 한 **사용자의 최신 피드백({recent_user_feedback})**을 가장 우선적으로 반영하세요.
+  
+                # 3 피드백 유효성 판단 및 처리:
+                    - 만약 {recent_user_feedback}이 무의미한 입력 (예: "ㅁㅇ니러", "모르겠다", "아무거나")일 경우:
+                    1. 전체 피드백 리스트 {user_feedback_list}를 **최신순(인덱스가 큰 순서대로)**으로 탐색하여 의미 있는 내용을 중심으로 키워드를 생성하세요.
+                    2. 만약 {user_feedback_list}가 비어있거나 모든 요소가 무의미한 문자열인 경우:
+                    - ["역사", "철학", "과학", "예술", "기술", "문화", "건강"] 중 하나의 주제를 임의로 선택하여 관련 키워드를 생성하세요.
 
-            3. **출력 형식**:
-              - 추출된 키워드들은 딕셔너리 형태의 JSON 형식으로 반환하세요. 
-                예:
-                ```
-                  {{"k1":"키워드1", "k2":"키워드2", "k3":"키워드3", ...}}
-                ```
+                # 4 출력 형식:
+                    - 결과는 JSON 형식으로 출력하세요.
+                        예시: {{"k1":"키워드1", "k2":"키워드2", "k3":"키워드3"}}
             """
 
             # Open API 호출
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"사용자 피드백 (최신 피드백 우선 정렬): {user_feedback_list}\n"
-                            f"쿼리: {query}\n\n"
-                            "키워드를 생성해주세요."
-                        ),
-                    },
+                    {"role": "user", "content": "system 지침에 따라 최근 사용자 피드백을 중심으로 SEO 최적화 키워드 3개를 생성해주세요."},
                 ],
                 temperature=0,
                 max_tokens=2048,
@@ -115,19 +96,16 @@ def extract_keywords(query:str, user_feedback_list:str, max_keywords:int=3) -> L
                 keywords_list = list(keywords_dict.values()) # (딕셔너리 value -> 리스트) 변환
             except json.JSONDecodeError as e:
                 fail_cnt += 1
-                print(f"🔍 JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
+                print(f"⚠️ JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 continue  # 재시도
-
-            # 추출된 키워드 리스트 반환 
-            return keywords_list
-
+            return keywords_list # 정상 추출
         except openai.error.RateLimitError:
             fail_cnt += 1
             print("🔍 Rate limit에 도달했습니다. 40초 후 재시도합니다...")
             time.sleep(40)
         except Exception as e:
+            fail_cnt += 1
             print(f"🔍 Error during OpenAI API call: {e}")
-            return []
 
     print("⚠️ 3번 이상의 실패로 키워드 추출 프로세스를 종료합니다.")
     return []  # 3번 이상 실패하면 빈 리스트 반환

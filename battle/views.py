@@ -34,8 +34,8 @@ class MatchBattleViewAPI(APIView):
             start_date__date=today
         ).count()
 
-        # if battle_generate_cnt >= 1:
-        #     return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
+        if battle_generate_cnt >= 1:
+            return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
     
         # Redis에서 대기열(Queue) 가져오기
         r = get_redis_connection("default") # djagno를 Redis 서버에 연결하고, 그 연결을 통해 대기열(Queue)에 접근
