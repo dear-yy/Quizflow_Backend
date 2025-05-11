@@ -41,6 +41,8 @@ def generate_multiple_choice_quiz_with_check(summary, previous_quiz=None) -> Tup
       - 문제는 아티클 요약을 읽은 사람이라면 쉽게 풀 수 있어야 하며, 요약을 읽지 않았다면 정답을 쉽게 추측할 수 없도록 출제합니다.
       - 문제의 의 전반적인 맥락은 previous_quiz과 달라야 한다.
       - 정답을 화면에 절대 출력하지 않도록 합니다.
+      - **한 개**의 퀴즈만 생성합니다.
+      - 출력 형식에 맞게 생성합니다.
 
     
     ## 출력 형식 
