@@ -203,24 +203,32 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         user_feedback_list = self.quizroom.user_feedback_list
         keyword_list = self.quizroom.keyword_list 
         
-        # 키워드 추출
-        new_keywords, search_query = get_keywords_from_feedback(recent_user_feedback, user_feedback_list, keyword_list)
-        print(f"🔍 추출 키워드 {new_keywords}")
-
-        if new_keywords == []:
+        # 1. 키워드 추출
+        new_keywords, search_query = get_keywords_from_feedback(recent_user_feedback, user_feedback_list, keyword_list) # (새 키워드, 누적 키워드==검색쿼리)
+        print(f"🔍 추출 키워드: {new_keywords} / 검색 쿼리: {search_query}")
+        if new_keywords == []: # 추출된 키워드가 없다면, 피드백 단계로 돌아가기
             send_message = "키워드 추출 에러가 발생하여 아티클 추천에 실패하였습니다. feedback을 다시 입력해주세요."
-            del self.quizroom.user_feedback_list[self.quizroom.cnt]
+            del self.quizroom.user_feedback_list[self.quizroom.cnt] # 키워드 추출 실패한 최신 피드백 삭제
             self.now_stage = "feedback"
             self.quizroom.now_stage = self.now_stage
             self.quizroom.save()
             return True, send_message
                     
-        # 아티클 추천
-        recommended_article = select_article(self.user, search_query, user_feedback_list) # 현재 사용자 요청 # 누적 사용자 요청 내역
-        retry_extracted_keywords = recommended_article["retry_extracted_keywords"]
-        print(f"🔍 재추출 키워드 {retry_extracted_keywords}")
+        # 2. 아티클 추천
+        recommended_article = select_article(self.user, search_query, user_feedback_list) # search_query:누적 키워드
+        if recommended_article["title"] == "실패": # 피드백 단계로 돌아가기 
+            print("⚠️ 아티클 추출에 실패하였습니다.")
+            send_message = "아티클 추천에 실패하였습니다. feedback을 다시 입력해주세요."
+            del self.quizroom.user_feedback_list[self.quizroom.cnt] # 키워드 추출 실패한 최신 피드백 삭제
+            self.now_stage = "feedback"
+            self.quizroom.now_stage = self.now_stage
+            self.quizroom.save()
+            return True, send_message
+        if recommended_article["retry_extracted_keywords"]:
+            retry_extracted_keywords = recommended_article["retry_extracted_keywords"]
+            print(f"🔍 재추출 키워드 {retry_extracted_keywords}")
 
-        # 아티클 본문 요약
+        # 3. 아티클 본문 요약
         recommended_article['body'] = summarize_article(recommended_article['body'])
 
         # 아티클 생성 및 Room 연결
@@ -246,7 +254,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 oldest_entry.delete()
 
         # 연결된 Room 객체 수정된 정보 저장
-        if  retry_extracted_keywords is not None: # 키워드 추출이 재시도된 경우 
+        if  retry_extracted_keywords: # 키워드 추출이 재시도된 경우 
             if isinstance(retry_extracted_keywords, list):  # 리스트 형태인지 확인
                 # 두 리스트 병합 # 중복 제거 # list 형태로 변환 
                 self.quizroom.keyword_list = list(set(self.quizroom.keyword_list + retry_extracted_keywords))
