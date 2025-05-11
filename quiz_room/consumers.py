@@ -202,6 +202,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
         recent_user_feedback = self.quizroom.user_feedback_list[self.quizroom.cnt] 
         user_feedback_list = self.quizroom.user_feedback_list
         keyword_list = self.quizroom.keyword_list 
+        retry_extracted_keywords = None
         
         # 1. 키워드 추출
         new_keywords, search_query = get_keywords_from_feedback(recent_user_feedback, user_feedback_list, keyword_list) # (새 키워드, 누적 키워드==검색쿼리)
@@ -254,7 +255,7 @@ class QuizroomConsumer(JsonWebsocketConsumer):
                 oldest_entry.delete()
 
         # 연결된 Room 객체 수정된 정보 저장
-        if  retry_extracted_keywords: # 키워드 추출이 재시도된 경우 
+        if retry_extracted_keywords: # 키워드 추출이 재시도된 경우 
             if isinstance(retry_extracted_keywords, list):  # 리스트 형태인지 확인
                 # 두 리스트 병합 # 중복 제거 # list 형태로 변환 
                 self.quizroom.keyword_list = list(set(self.quizroom.keyword_list + retry_extracted_keywords))

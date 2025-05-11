@@ -33,21 +33,18 @@ def get_keywords_from_feedback(recent_user_feedback:str, user_feedback_list:list
     # 1. 새로운 키워드 추출
     new_keyword_list = extract_keywords(False, user_feedback_list)
 
-    # 2. 추출 키워드 kewords_list에 연결(누적 키워드 리스트->검색쿼리)
-    keyword_list = keyword_list + new_keyword_list
-    search_query = " ".join(keyword_list)
+    # 2. 추출 키워드 kewords_list에 연결(누적 키워드 리스트 -> 검색쿼리)
+    search_query = " ".join(new_keyword_list)
 
     return (new_keyword_list, search_query)
 
 # 키워드 추출
-   
 def extract_keywords(retry:bool, user_feedback_list:str, max_keywords:int=3) -> List:
     fail_cnt = 0  # 실패 카운트 초기화
     recent_user_feedback = user_feedback_list[-1]
     while fail_cnt < 3:
         try:
             # SEO 최적화된 키워드란 -> 검색 엔진에서 사람들이 자주 검색하는 단어( 많은 사람들이 검색할 가능성이 높은은 키워드)
-            # 프롬프트 요청 retry가 true인 경우는 좀 더 보편적인 키워드로 변환하도록 검색 결과가 존재할 것 같은 키워드로 추출하도록 요청 수정
             system_prompt = f"""
                 당신의 역할은 **사용자 피드백을 바탕으로 SEO(검색 엔진 최적화)에 최적화된 키워드 3개를 생성**하는 것입니다.
 
@@ -55,6 +52,7 @@ def extract_keywords(retry:bool, user_feedback_list:str, max_keywords:int=3) -> 
                     - 가장 최근 피드백({recent_user_feedback})을 **중심으로** 삼아, 그 의미를 더 구체화하고 확장할 수 있는 키워드를 생성하세요.
                     - 과거 피드백 리스트({user_feedback_list})의 요소들을 함께 고려하여 **최근 피드백과 의미적으로 연결**하거나 **심화된 방향**으로 발전시킬 수 있는 키워드를 생성하세요.
                         예: 과거 피드백="환경 오염", 가장 최근 피드백="산불" → 생성 키워드: `"산불 원인"`, `"환경 오염 피해 사례"`, `"기후변화 산불"`
+                    - {retry}가 True이면, 기존 키워드로 아티클 검색에 실패한 상황이므로 피드백을 기반으로 검색 결과가 존재할만한 더 포괄적인 키워드로 생성하세요. 
 
                 # 2 키워드 추출 규칙:
                     - 생성하는 키워드는 **검색 엔진에서 자주 검색될 가능성이 높은** **명사 중심의 구체적 표현**이어야 합니다.
@@ -96,7 +94,7 @@ def extract_keywords(retry:bool, user_feedback_list:str, max_keywords:int=3) -> 
                 keywords_list = list(keywords_dict.values()) # (딕셔너리 value -> 리스트) 변환
             except json.JSONDecodeError as e:
                 fail_cnt += 1
-                print(f"⚠️ JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
+                print(f"⚠️ [extract_keywords] JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 continue  # 재시도
             return keywords_list # 정상 추출
         except openai.error.RateLimitError:
@@ -156,8 +154,7 @@ def select_article(user:User, query:str, user_feedback_list:list) -> Dict: # (�
             # 키워드 재추출 -> 검색 쿼리 재구성
             retry_extracted_keywords = extract_keywords(True, user_feedback_list, max_keywords=3)
             if retry_extracted_keywords:
-                query = query.rsplit(" ", 3)[0]  # 실패(최신) 키워드 3개 삭제 # query = "a b c d e f" ->  ['a b c', 'd', 'e', 'f'] -> "a b c" 
-                query = query + " " + " ".join(retry_extracted_keywords) # 검색 쿼리 재구성
+                query = " ".join(retry_extracted_keywords) # 검색 쿼리 재구성
                 df = Google_API(user, query, num_results_per_site=5, sites=sites) # # 후보 기사 목록 재구성
         else: # 아티클 추천 성공
             # Title, URL 및 Body 추출
@@ -271,7 +268,7 @@ def process_recommend_article(df:pd.DataFrame=None, user_feedback:str="") -> Dic
         else: # 추천 아티클 존재 O
             url = recommend_article["Link"] 
             domain = recommend_article["Domain"]
-            title = recommend_article.iloc["Title"]
+            title = recommend_article["Title"]
 
         # 3. 본문 추출
         article_body = get_article_body(url, domain)
@@ -351,7 +348,7 @@ def find_recommend_article(df_google:pd.DataFrame, user_feedback_list:list) -> T
             try:
                 content_dict = json.loads(content)
             except json.JSONDecodeError as e:
-                print(f"⚠️ JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
+                print(f"⚠️ [find_recommend_article] JSON 파싱 오류: {e}. 응답 내용: {response['choices'][0]['message']['content']}")
                 fail += 1 
                 continue
 
