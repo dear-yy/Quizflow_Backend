@@ -34,7 +34,7 @@ class MatchBattleViewAPI(APIView):
             start_date__date=today
         ).count()
 
-        if battle_generate_cnt >= 1:
+        if battle_generate_cnt >= 2: # 생성 제한 수정하기 
             return Response({"error": "일일 제한 초과"}, status=status.HTTP_400_BAD_REQUEST)
     
         # Redis에서 대기열(Queue) 가져오기

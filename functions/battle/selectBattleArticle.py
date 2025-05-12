@@ -146,7 +146,8 @@ def extract_keywords() -> Tuple[List, str]:
 '''
 # 사용자 입력 
 def select_article(player_1:User, player_2:User, query:str) -> Dict:
-
+    fail = 0                    
+    retry_extracted_keywords = None # 키워드 재추출 시
     num_results_per_site = 3    # 각 사이트당 결과 개수
     sites = [                   # 검색 가능 사이트 목록 
         # "brunch.co.kr",
@@ -160,59 +161,37 @@ def select_article(player_1:User, player_2:User, query:str) -> Dict:
         "ohmynews.com",
     ]
 
-    # 후보 기사 목록 서치 (추출된 키워드 기반 쿼리로)
+    # 1. 후보 기사 목록 서치 (추출된 키워드 기반 쿼리로)
     df = Google_API(player_1, player_2, query, num_results_per_site, sites)  # query로 탐색된 기사 목록
-    # print(df) # 디버깅 # 후보 기사 목록
-    time.sleep(30)  # 생성 토큰 제한 에러 예방
+    time.sleep(20)  # 생성 토큰 제한 에러 예방
 
     
-    # 추천 아티클 결정 
-    extracted_keywords = None # 초기화 # 키워드 재생성 시 활용
-    attempts = 0
-    while attempts <= 3: # 3회 초과하면 중단
-        # 추천 아티클
+    # 2. 추천 아티클 결정 
+    while fail < 3:
+        # 아티클 추천 gpt 요청
         info_for_the_article = process_recommend_article(df, query)
-        # print(f"🔍추천 아티클: {info_for_the_article}") # 디버깅
         
-        if info_for_the_article is None or info_for_the_article.empty: # 추천된 아티클이 없거나 본문 추출이 실패할 경우
-            attempts += 1
-            # 새로운 키워드 생성하여 쿼리(검색어) 재구성
-            extracted_keywords = extract_keywords() # 키워드 재재추출
-            if extracted_keywords:
-                query = " ".join(map(str, extracted_keywords)) # 추출된 키워드 저장(기존 키워드 삭제 & 새로운 검색어 설정)
-            else:
-                query = None
-
-            # Google API로 새로운 검색 수행
-            df = Google_API(player_1, player_2, query, num_results_per_site=5, sites=sites)
-            if df.empty: # 새로운 검색어로도 결과를 차지 못함
-                continue  # 검색 실패 시 다시 반복
+        if info_for_the_article is None : # 아티클 추천 실패
+            fail += 1
+            # 키워드 재추출 -> 검색 쿼리 재구성
+            retry_extracted_keywords = extract_keywords()
+            if retry_extracted_keywords:
+                query = " ".join(retry_extracted_keywords) # 검색 쿼리 재구성
+                df = Google_API(player_1, player_2, query, num_results_per_site=5, sites=sites) # 후보 기사 목록 재구성
         else: # 추천 아티클이 존재한다면
             # Title, URL 및 Body 추출
-            recommend_article_title = info_for_the_article.iloc[0]["Title"]
-            recommend_article_body = info_for_the_article.iloc[0]["Body"]
-            recommend_article_url = info_for_the_article.iloc[0]["URL"]
-
-            # 본문이 유효한지 확인
-            # IndexError: single positional indexer is out-of-bounds -> recommend_article_body (DataFrame)이 빈 경우 종종 발생!
-            if recommend_article_body and len(recommend_article_body.strip()) > 0:
-                print("🔍 추천 아티클 URL:", recommend_article_url)
-                break  # 본문 추출 성공 시 루프 종료
+            recommend_article_title = info_for_the_article["Title"]
+            recommend_article_body = info_for_the_article["Body"]
+            recommend_article_url = info_for_the_article["URL"]
+            print("✅ 추천 아티클 URL:", recommend_article_url)
+            break  # 본문 추출 성공 시 루프 종료
     
-    if attempts >= 3:
-        print("⚠️ 아티클 추천에 실패하였습니다.")
-        return {
-            "title": "",
-            "body": "", 
-            "url": "",
-            "retry_extracted_keywords": "" # 키워드 재추출시 # 필요 없으면 제거
-        }
-    
+    # 3. 최종 추천 아티클 정보 반환
     return  {
         "title": recommend_article_title,
         "body": recommend_article_body, 
-        "url": recommend_article_url,
-        "retry_extracted_keywords": extracted_keywords # 키워드 재추출시 # 필요 없으면 제거
+        "url": recommend_article_url, 
+        "retry_extracted_keywords": retry_extracted_keywords # 키워드 재추출시, DB에 반영하기 위함 
     }
 
 
@@ -220,57 +199,49 @@ def select_article(player_1:User, player_2:User, query:str) -> Dict:
 
 
 
-# 후보 기사들 ("Title", "Description", "Link", "Domain") 형식의 데이터프레임으로
-def Google_API(player_1:User, player_2:User, query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 데이터 구조 (행&열 구성)
-    # 각 사이트의 결과 모음 리스트(추천 기사 후보 리스트)
-    df_google_list = [] # 요소는 dataframe으로 한 기사의 정보를 담고 있음
+# 후보 기사 정보 ("Title", "Description", "Link", "Domain") 형식
+def Google_API(player_1:User, player_2:User, query:str, num_results_per_site:int, sites:list[str]) -> pd.DataFrame: # DataFrame:2차원 행&열 데이터 구조
+     # 후보 기사 리스트
+    df_google_list = [] 
 
-    # 사용자의 과거 아티클 정보 # 유저 정보 파라미터 필요
+    # 사용자의 과거 아티클 정보
     player_1_past_articles = set(Article.objects.filter(user=player_1).order_by('-timestamp')[:100].values_list('url', flat=True)) # player_1의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
     player_2_past_articles = set(Article.objects.filter(user=player_2).order_by('-timestamp')[:100].values_list('url', flat=True)) # plaeyr_2의 과거 아티클을 최신순으로 정렬 후, 상위 100개 반환(중복은 삭제)
     past_articles = player_1_past_articles.union(player_2_past_articles)
 
     # 사이트 별 쿼리로 후보 기사 조회
     for site in sites: 
-        
+        # 1. Google Custom Search API에 대한 요청 URL 구성
         site_query = f"site:{site} {query}"     # 각 사이트 별 검색어 구성
-        collected_results_cnt = 0               # 현재 사이트에서 수집한 결과 수
-        start_index = 1                         # 검색 결과에서 탐색 시작할 위치를 지정
-        num = 5                                # 한 번에 반환할 검색 결과의 수
-        # Google Custom Search API에 대한 요청 URL 생성
+        collected_results_cnt = 0               # 수집한 결과 개수
+        start_index = 1                         # 검색 결과에서 탐색 시작 위치
+        num = 5                                 # 한 번에 반환할 결과의 개수
         url = f"https://www.googleapis.com/customsearch/v1?key={GOOGLE_API_KEY}&cx={GOOGLE_SEARCH_ENGINE_ID}&q={site_query}&start={start_index}&num={num}" 
             
-        while collected_results_cnt < num_results_per_site: # 정해진 개수에 도달할 때까지 반복    
-            # 요청
+        while collected_results_cnt < num_results_per_site: # 정해진 개수에 도달할 때까지
             try:
-                # URL로 HTTP GET 요청
+                # 2. URL로 HTTP GET 요청
                 response = requests.get(url)
 
-                # 요청 성공 여부 확인
-                if response.status_code != 200: # Get 요청 실패
+                # 3. 요청 성공 여부에 따른 처리 
+                if response.status_code != 200: # 요청 실패
                     print(f"⚠️ {site}에 대한 HTTP GET 요청 실패: {response.status_code}, Message: {response.text}")
-                    break # while 루프 종료
-                
-                # API 응답 데이터 처리(요청 성공시 작동)
-                data = response.json() # API의 응답 데이터 -> JSON 형식
-                # print(f"get data: {data}") # 디버깅용 # 구조 확인용 
-                
-                # 검색 결과 항목 존재 여부 확인
-                search_items = data.get("items") # 검색 결과 항목들 가져오기
-                if not search_items: # 만약 검색 결과가 없으면
-                    print(f"🔍 No more results found for site {site}.")
-                    break # while 루프 종료
+                    break 
+                else: # 요청 성공 
+                    data = response.json() # 응답 데이터 -> JSON 형식
+                    search_items = data.get("items") # 검색 결과 항목(기사)들 가져오기
+                    if not search_items: # 검색 결과가 없으면
+                        print(f"🔍 '{site}'에 관련 검색 결과가 없습니다.")
+                        break 
 
-                # 검색 결과 순회(기사 정보 추출)
+                # 4. 기사 정보 추출
                 for search_item in search_items:
                     # 결과 개수 체크
-                    if collected_results_cnt >= num_results_per_site: # 정해진 개수에 도달한 경우
+                    if collected_results_cnt >= num_results_per_site: # 결과 개수 도달
                         break # for 루프 종료
 
                     # 정보 추출
-                    link = search_item.get("link")
-                    title = search_item.get("title")
-                    description = search_item.get("snippet")
+                    link, title, description = search_item.get("link"), search_item.get("title"), search_item.get("snippet")
 
                     # 사용자 과거 아티클과의 중복 방지
                     if link in past_articles:
@@ -288,84 +259,65 @@ def Google_API(player_1:User, player_2:User, query:str, num_results_per_site:int
                         )
                     )
                     collected_results_cnt += 1  # 현재 수집 결과 개수 증가
-                # 다음 페이지 검색
-                if num_results_per_site > 10: # num_results_per_site가 10 이상일 때만
-                    start_index += 10 # start_index를 증가시킴(num을 10으로 설정해뒀기 때문)
-
             except Exception as e:
                 print(f"⚠️ Error occurred for site {site}: {e}")
                 break
-
-    # 모든 사이트의 결과를 하나의 DataFrame으로 결합
+    # 5. 모든 결과를 하나의 DataFrame으로 결합
     if df_google_list: 
-        # df_google_list의 요소인 각 DataFrame들은 모두 동일한 열 구조이므로, 하나의 DataFrame으로 결합 가능
         df_google = pd.concat(df_google_list, ignore_index=True)  # ignore_index=True: 새로운 연속적인 인덱스를 부여
     else:  # df_google_list가 비어있다면
         df_google = pd.DataFrame(columns=["Title", "Description", "Link", "Domain"]) # 빈 DataFrame 
 
     return df_google
-   
 
 
 
-# 추천된 아티클에서 URL, Body, Title을 추출
-    # 추천된 아티클이 없거나, 추천된 아티클의 본문을 가져올 수 없을 경우 
-    # 해당 데이터를 삭제하고 새로운 추천을 요청하는 함수
-def process_recommend_article(df:pd.DataFrame=None, query:str="") -> pd.DataFrame:
+# gpt 기반 아티클 추천 후, body 정보 추출하여 추천 기사 정보 반환환 
+    # 추천된 아티클이 없거나 본문을 가져올 수 없을 경우, 해당 데이터를 삭제 후 재추천
+def process_recommend_article(df:pd.DataFrame=None, query:str="") -> Dict:
     # 초기화
-    recommend_article = pd.DataFrame(columns=["Title", "Description", "Link", "Domain"])
- 
-    # 추천 정보 추출 프로세스
-    while True:
-        # 추천 아티클 탐색
-        recommend_article = find_recommend_article(df, query) 
+    fail = 0
 
-        # 아티클 존재 여부 파악
-        if recommend_article.empty: # 추천된 아티클이 비어 있는 경우
-            print("🔍 추천된 아티클이 더 이상 없습니다.")
-            return None #  while 루프 종료
+    # 추천 아티클 선정 후, body 추출 프로세스
+    while fail < 3:
+        # 1. 추천 아티클 반환
+        recommend_article =  find_recommend_article(df, query) 
 
-        try: # 추천 아티클이 존재하는 경우
-            # URL, Domain, Title 추출
-            url = recommend_article.iloc[0]["Link"]  # URL 추출
-            domain = recommend_article.iloc[0]["Domain"]  # Domain 추출
-            title = recommend_article.iloc[0]["Title"]  # Title 추출
-        except IndexError as e:
-            print(f"🔍 추천된 아티클에서 데이터를 추출할 수 없습니다: {e}")
-            recommend_article.drop(recommend_article.index[0], inplace=True) # recommend_article에서 삭제
-            df.drop(df[df["Link"] == url].index, inplace=True) # df에서 삭제
-            continue  # 새로운 아티클을 탐색을 위해 while 루프 재시작
+        # 2. 아티클 존재 여부 파악
+        if recommend_article is None: # 추천 아티클 존재 X
+            if df.empty: # 후보 기사 목록이 빈 경우
+                print("⚠️ 후보 기사 목록이 비어 추천할 수 있는 기사가 없습니다.")
+                break
+            else: 
+                fail += 1
+                continue # 재추천
+        else: # 추천 아티클 존재 O
+            url = recommend_article["Link"] 
+            domain = recommend_article["Domain"]
+            title = recommend_article["Title"]
 
-        # 본문(article body) 추출
-        article_body = get_article_body(url, domain)  # 본문 추출 함수 호출
+        # 3. 본문 추출
+        article_body = get_article_body(url, domain)
         
-        if ( # 본문이 없거나 본문 길이가 5문장 이하인 경우 처리
-            not article_body
-            or len([s for s in article_body.split(".") if s.strip()]) <= 5
-        ):
-            print(f"🔍 본문이 없는 아티클 (또는 본문이 5문장 이하)이르모 데이터를 추출할 수 없습니다.")
-            recommend_article.drop(recommend_article.index[0], inplace=True)# recommend_article에서 삭제
-            df.drop(df[df["Link"] == url].index, inplace=True) # df에서 삭제
-            continue   # 새로운 아티클을 탐색을 위해 while 루프 재시작
-
-        # 본문이 유효할 경우 DataFrame 생성 및 반환
-        info_for_the_article = pd.DataFrame(
-            [[title, url, article_body]],
-            columns=["Title", "URL", "Body"]
-        )
+        if ( not article_body or len([s for s in article_body.split(".") if s.strip()]) <= 5 ): # 본문이 없거나 5문장 이하인 경우
+            print(f"🔍 본문이 없는 아티클 (또는 본문이 5문장 이하)이므로 데이터를 추출할 수 없습니다.")
+            df.drop(df[df["Link"] == url].index, inplace=True) # df(후보 기사 목록)에서 삭제
+            fail += 1
+            continue   # 재추천
+        else: # 추출 성공
+            return { "Title": title, "URL": url, "Body": article_body}
     
-        return info_for_the_article
+    # 정보 추출 실패 시
+    return None
     
 
 
 # 추천 아티클 결정#
-def find_recommend_article(df_google:pd.DataFrame, query:str="") -> pd.DataFrame:
-    # 아티클 목록에 index 포함
-    article_titles = df_google["Title"].tolist()
-    article_descriptions = df_google["Description"].tolist()
-    article_indices = df_google.index.tolist()  # DataFrame의 index를 리스트로 저장
-    # print(f"find_recommend_article: {query}") # 디버깅
+def find_recommend_article(df_google:pd.DataFrame, query:str="") -> Dict:
     fail = 0
+    # DataFrame의 각 항목 리스트 형태로 변환해 저장
+    article_descriptions = df_google["Description"].tolist()
+    article_indices = df_google.index.tolist()
 
     while fail < 3:
         try:
@@ -421,7 +373,6 @@ def find_recommend_article(df_google:pd.DataFrame, query:str="") -> pd.DataFrame
 
             # GPT의 응답 분석 
             content = response["choices"][0]["message"]["content"]
-            # print(f"🔍 추천 아티클의 정보 확인\n index: {content}") # 디버깅
 
             # 정수형으로 변환 시도
             try:
@@ -432,17 +383,23 @@ def find_recommend_article(df_google:pd.DataFrame, query:str="") -> pd.DataFrame
             # index가 DataFrame에 존재하는지 확인
             if recommended_index not in df_google.index:
                 print(f"⚠️ 추천된 index({recommended_index})는 존재하지 않습니다.")
-                return pd.DataFrame()
+                break
 
             # 해당 index로 행(해당 기사 정보) 반환
-            recommended_article = df_google.loc[[recommended_index]] 
-            return recommended_article # 결과 DataFrame 형태로 반환
-
+            recommended_row = df_google.loc[recommended_index]
+            recommended_article = {
+                "Link": recommended_row["Link"],
+                "Domain": recommended_row["Domain"],
+                "Title": recommended_row["Title"]
+            }
+            return recommended_article
         except openai.error.RateLimitError:
             print("🔍 Rate limit reached. Retrying in 40 seconds...")
             time.sleep(40)  # 40초 지연 후 재시도
             fail += 3
             continue
+
+    return None # 처리 실패 시
     
 
 def get_article_body(url:str, domain:str) -> str:
