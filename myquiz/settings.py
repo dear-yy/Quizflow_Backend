@@ -191,20 +191,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Windows는 공식적으로 Redis 5 이상을 지원하지 않음(배포)
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)], # Redis 서버 주소와 포트
+        },
     },
 }
-
-# # Windows는 공식적으로 Redis 5 이상을 지원하지 않음 
-# # Docker를 사용하면 Windows에서도 Redis 5 이상의 버전을 사용할 수 있음 
-# # 배포할거면, Docker 다운 받아야 함 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("localhost", 6379)], # Redis 서버 주소와 포트
-#         },
-#     },
-# }
