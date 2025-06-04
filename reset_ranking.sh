@@ -4,7 +4,7 @@
 echo "[$(date)] reset_ranking 시작" >> ~/Quizflow_Backend/reset_ranking.log
 
 # 가상환경 활성화
-source ~/venvs/bin/activate
+source ~/venv/bin/activate
 
 # 프로젝트 폴더로 이동
 cd ~/Quizflow_Backend
