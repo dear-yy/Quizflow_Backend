@@ -30,4 +30,11 @@
 [migration 순서]
 1. ```python manage.py migrate``` 
 2. ```python manage.py makemigrations users```
-3. ```python manage.py migrate``` 
+3. ```python manage.py migrate```
+
+[프로젝트 구조]
+
+
+[각 파일 설명]
+
+
