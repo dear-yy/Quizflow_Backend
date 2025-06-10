@@ -1,14 +1,19 @@
-- 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
-    
-    `python -V`   * 대문자 V
-    
-- 장고 → 5.1.5
-    
-    `pip show django`
-    
-- DRF → 3.15.2
-    
-    `pip show djangorestframework`
+[프로젝트 구성]
+루트 -> myquiz
+앱 -> quiz_room / battle / ranking / users
+
+[프로젝트 구조]
+- myquiz -> 프로젝트 루트 폴더 
+- quiz_room -> 퀴즈 기능 앱 폴더
+- battle -> 배틀 기능 앱 폴더
+- ranking -> 랭킹 시스템 앱 폴더
+- users -> 회원 관리 기능 앱 폴더
+- functions -> Open AI API 사용하는 기능 모듈 폴더
+- media -> 사용자 프로필 이미지 관리 폴더
+- install_list.txt -> 설치 모듈&버전 목록 파일
+- reset_ranking.bat -> 로컬용(Window) django command 실행 파일
+- reset_ranking.sh -> 배포용(Ubuntu) django command 실행 파일
+
 
 [가상환경 셋팅]
 1. C드라이브 위치에서 venvs라는 가상 환경 관리용 폴더 생성
@@ -21,20 +26,43 @@
 4. 패키지 설치
   ```python -m pip install -r install_list.txt```
 5. 백엔드 프로젝트 폴더 위치로 이동
-7. 마이그레이션 (초기 DB생성)
+7. 마이그레이션
+  ```python manage.py migrate```
+  ```python manage.py makemigrations [앱 이름]```
+  ```python manage.py migrate```
 8. 관리자 생성
    ```python manage.py createsuperuser```
 9. 서버 실행
    ```python magage.py runserver```
-
-[migration 순서]
-1. ```python manage.py migrate``` 
-2. ```python manage.py makemigrations users```
-3. ```python manage.py migrate```
-
-[프로젝트 구조]
+   
 
 
-[각 파일 설명]
+[사용 버전 확인]
+- 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
+    
+    `python -V`   * 대문자 V 
+    
+- 장고 → 5.1.5
+    
+    `pip show django`
+    
+- DRF → 3.15.2
+    
+    `pip show djangorestframework`
+
+[ERD]
+
+[API]
+배틀
+| 설명 | method | API path |
+| 매칭 대기 | HTTP-Post | /battle/match/|
+| 매칭 현황 조회 | HTTP-Get | /battle/match/|
+| 매칭 대기 취소 | HTTP-Get | /battle/match/cancel/ |
+| 배틀 완료 내역 조회 | HTTP-Get | /battle/list/ |
+| 배틀 종료 | HTTP-Patch | /battle/<int: battleroom_id> /disconnect/ |
+| 배틀 결과 조회 | HTTP-Get | battle/<int: battleroom_id> /result/ |
+| BattleSeupConsumer | WS | /battle/int:battle_room_id/ |
+| BattleConsumer | WS | /battle/<int:battle_room_id>/<int:user_pk>/ |
+
 
 
