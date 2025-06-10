@@ -1,21 +1,21 @@
-[프로젝트 구성]
-루트 -> myquiz
-앱 -> quiz_room / battle / ranking / users
+## [프로젝트 구성]
+**루트** -> myquiz
+**앱** -> quiz_room / battle / ranking / users
 
-[프로젝트 구조]
-- myquiz -> 프로젝트 루트 폴더 
-- quiz_room -> 퀴즈 기능 앱 폴더
-- battle -> 배틀 기능 앱 폴더
-- ranking -> 랭킹 시스템 앱 폴더
-- users -> 회원 관리 기능 앱 폴더
-- functions -> Open AI API 사용하는 기능 모듈 폴더
-- media -> 사용자 프로필 이미지 관리 폴더
-- install_list.txt -> 설치 모듈&버전 목록 파일
-- reset_ranking.bat -> 로컬용(Window) django command 실행 파일
-- reset_ranking.sh -> 배포용(Ubuntu) django command 실행 파일
+## [프로젝트 구조]
+- **myquiz** -> 프로젝트 루트 폴더 
+- **quiz_room** -> 퀴즈 기능 앱 폴더
+- **battle** -> 배틀 기능 앱 폴더
+- **ranking** -> 랭킹 시스템 앱 폴더
+- **users** -> 회원 관리 기능 앱 폴더
+- **functions** -> Open AI API 사용하는 기능 모듈 폴더
+- **media** -> 사용자 프로필 이미지 관리 폴더
+- **install_list.txt** -> 설치 모듈&버전 목록 파일
+- **reset_ranking.bat** -> 로컬용(Window) django command 실행 파일
+- **reset_ranking.sh** -> 배포용(Ubuntu) django command 실행 파일
 
 
-[가상환경 셋팅]
+## [가상환경 셋팅]
 1. C드라이브 위치에서 venvs라는 가상 환경 관리용 폴더 생성
 2. venvs 폴더에 가상 환경  생성 
     ```cd venvs```
@@ -37,7 +37,7 @@
    
 
 
-[사용 버전 확인]
+## [사용 버전 확인]
 - 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
     
     `python -V`   * 대문자 V 
@@ -50,10 +50,10 @@
     
     `pip show djangorestframework`
 
-[ERD]
+## [ERD]
 
-[API]
-### 배틀
+## [API]
+#### 배틀
 | 설명 | method | API path |
 |------|------|------|
 | 매칭 대기 | HTTP-Post | /battle/match/|
