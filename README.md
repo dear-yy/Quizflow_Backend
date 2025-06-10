@@ -53,8 +53,9 @@
 [ERD]
 
 [API]
-배틀
+### 배틀
 | 설명 | method | API path |
+|------|------|------|
 | 매칭 대기 | HTTP-Post | /battle/match/|
 | 매칭 현황 조회 | HTTP-Get | /battle/match/|
 | 매칭 대기 취소 | HTTP-Get | /battle/match/cancel/ |
