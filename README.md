@@ -53,7 +53,12 @@
 ## [ERD]
 
 ## [API]
-#### 배틀
+### quiz_room
+| 설명 | method | API path |
+|------|------|------|
+|  |  |  |
+
+### battle
 | 설명 | method | API path |
 |------|------|------|
 | 매칭 대기 | HTTP-Post | /battle/match/|
@@ -65,5 +70,16 @@
 | BattleSeupConsumer | WS | /battle/int:battle_room_id/ |
 | BattleConsumer | WS | /battle/<int:battle_room_id>/<int:user_pk>/ |
 
+
+### ranking
+| 설명 | method | API path |
+|------|------|------|
+|  |  |  |
+
+
+### users
+| 설명 | method | API path |
+|------|------|------|
+|  |  |  |
 
 
