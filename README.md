@@ -61,11 +61,9 @@
 ### 2. PostgreSQL 접속
 1. 로그인
     ```psql -U postgres```
-2. 로그인
-    ```psql -U postgres```
-3. DB 생성
+2. DB 생성
     ```CREATE DATABASE [DB명] OWNER root;```
-4. DB 목록 확인
+3. DB 목록 확인
     ```\l```
 
 
