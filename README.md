@@ -1,6 +1,6 @@
 ## [프로젝트 구성]
-**루트** -> myquiz
-**앱** -> quiz_room / battle / ranking / users
+**루트** -> myquiz <br>
+**앱** -> quiz_room / battle / ranking / users <br>
 
 ## [프로젝트 구조]
 - **myquiz** -> 프로젝트 루트 폴더 
@@ -34,9 +34,25 @@
    ```python manage.py createsuperuser```
 9. 서버 실행
    ```python magage.py runserver```
-   
 
 
+## [DB 셋팅]
+### 1. PostgreSQL 설치
+1. [공식 웹사이트](https://www.postgresql.org/)에 접속
+2. 운영체제에 맞는 설치 파일 다운로드
+3. 설치 도중 `postgres` 사용자 비밀번호 설정
+
+### 2. PostgreSQL 접속
+1. 로그인
+    ```psql -U postgres```
+2. 로그인
+    ```psql -U postgres```
+3. DB 생성
+    ```CREATE DATABASE [DB명] OWNER root;```
+4. DB 목록 확인
+    ```\l```
+
+<br>
 ## [사용 버전 확인]
 - 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
     
@@ -50,14 +66,23 @@
     
     `pip show djangorestframework`
 
+<br>
+
 ## [ERD]
 <img src="https://github.com/dear-yy/CapstoneDesignProject/blob/main/image/ERD.jpg" width="80%" />
+
+<br>
 
 ## [API]
 ### quiz_room
 | 설명 | method | API path |
 |------|------|------|
-|  |  |  |
+| 퀴즈룸 생성 |  HTTP-Post | /quizrooms/ |
+| 퀴즈룸 리스트 조회 |  HTTP-Get | /quizrooms/ |
+| 퀴즈룸 상세 조회 |  HTTP-Get | /quizroom/<int:quizroom_id>/message_list/  |
+| QuizroomConsumer | WS | /chat/<quizroom_id>/ |
+
+
 
 ### battle
 | 설명 | method | API path |
@@ -75,12 +100,15 @@
 ### ranking
 | 설명 | method | API path |
 |------|------|------|
-|  |  |  |
-
+| 랭킹보드 조회 | HTTP-Get | /ranking /board/ |
 
 ### users
 | 설명 | method | API path |
 |------|------|------|
-|  |  |  |
+| 회원가입 | HTTP-Get | /users/register |
+| 로그인 | HTTP-Post | /users/login |
+| 프로필 수정 | HTTP-Post | /users/profile/<int:pk> |
+| 프로필 조회 | HTTP-Get | /users/profile/<int:pk> |
+| 회원 탈 | HTTP-Delete | /users/account/delete/ |
 
 
