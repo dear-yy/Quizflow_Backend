@@ -51,6 +51,7 @@
     `pip show djangorestframework`
 
 ## [ERD]
+<img src="https://github.com/dear-yy/CapstoneDesignProject/blob/main/image/ERD.jpg" width="80%" />
 
 ## [API]
 ### quiz_room
