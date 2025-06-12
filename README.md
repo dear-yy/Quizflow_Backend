@@ -36,9 +36,28 @@
    ```python magage.py runserver```
 
 
+## [사용 버전 확인]
+- 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
+    
+    `python -V`   * 대문자 V 
+    
+- 장고 → 5.1.5
+    
+    `pip show django`
+    
+- DRF → 3.15.2
+    
+    `pip show djangorestframework`
+
+<br>
+
+
 ## [DB 셋팅]
 ### 1. PostgreSQL 설치
-1. [공식 웹사이트](https://www.postgresql.org/)에 접속
+1. [공식 웹사이트](
+## [DB 셋팅]
+### 1. PostgreSQL 설치
+1. (https://www.postgresql.org/)에 접속
 2. 운영체제에 맞는 설치 파일 다운로드
 3. 설치 도중 `postgres` 사용자 비밀번호 설정
 
@@ -52,19 +71,19 @@
 4. DB 목록 확인
     ```\l```
 
-<br>
-## [사용 버전 확인]
-- 파이썬 → [python 3.12.6](https://www.python.org/downloads/release/python-3126/)
-    
-    `python -V`   * 대문자 V 
-    
-- 장고 → 5.1.5
-    
-    `pip show django`
-    
-- DRF → 3.15.2
-    
-    `pip show djangorestframework`
+<br>)에 접속
+2. 운영체제에 맞는 설치 파일 다운로드
+3. 설치 도중 `postgres` 사용자 비밀번호 설정
+
+### 2. PostgreSQL 접속
+1. 로그인
+    ```psql -U postgres```
+2. 로그인
+    ```psql -U postgres```
+3. DB 생성
+    ```CREATE DATABASE [DB명] OWNER root;```
+4. DB 목록 확인
+    ```\l```
 
 <br>
 
